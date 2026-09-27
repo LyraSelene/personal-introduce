@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#448eb5">
+  <meta name="description" content="关于我、一些感受，以及舍不得丢掉的日常碎片。">
+  <title>酸橙来信 · A little piece of sky</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="personal.css">
+</head>
+<body>
+  <div class="arrival" aria-hidden="true"><div class="arrival-sun">✳</div><span>A LETTER FROM MY LITTLE WORLD</span><p>借一阵风，<br>和你见面。</p><div class="arrival-line"></div><small>酸橙来信 / HELLO, YOU.</small></div>
+  <button id="motion-toggle" class="motion-toggle" aria-pressed="false">暂停动效</button>
+  <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="citrus" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="currentColor"/><circle cx="50" cy="50" r="35" fill="none" stroke="var(--citrus-line,#fff9dd)" stroke-width="3"/><g fill="none" stroke="var(--citrus-line,#fff9dd)" stroke-width="3" stroke-linecap="round"><path d="M50 19v24m0 14v24M19 50h24m14 0h24M28 28l17 17m10 10 17 17M28 72l17-17m10-10 17-17"/></g><circle cx="50" cy="50" r="5" fill="var(--citrus-line,#fff9dd)"/></symbol>
+    <symbol id="spark" viewBox="0 0 40 40"><path d="M20 1q2 17 19 19-17 2-19 19Q18 22 1 20 18 18 20 1Z" fill="currentColor"/></symbol>
+    <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  </defs></svg>
+  <a class="skip-link" href="#main">跳到正文</a>
+  <header class="site-header">
+    <a class="brand" href="#home" aria-label="酸橙来信 首页"><svg><use href="#citrus"/></svg><span>酸橙来信<small>POSTCARDS FROM MY LITTLE WORLD</small></span></a>
+    <nav aria-label="主导航"><a class="active" href="#home">首页<span>HOME</span></a><a href="#about">关于我<span>ABOUT</span></a><a href="#feelings">此刻心情<span>FEELINGS</span></a><a href="#journal">心事手记<span>LETTERS</span></a></nav>
+    <button class="sky-switch" id="sky-switch" aria-label="切换为日落天空" aria-pressed="false"><span class="sun-icon">☀</span><span class="sky-label">今日晴</span></button>
+  </header>
+  <main id="main">
+    <section class="hero" id="home" aria-labelledby="hero-title">
+      <div class="hero-picture" role="img" aria-label="蓝天下，人物、冰淇淋与旅行物件一起漂浮的明日方舟主题插画"></div><div class="hero-shade"></div>
+      <div class="hero-coordinate">A LITTLE PIECE OF SKY &nbsp; / &nbsp; EST. 2026</div>
+      <div class="hero-copy"><div class="hello"><span></span> 很高兴，在这里遇见你。</div><h1 id="hero-title"><span class="hero-line"><span>关于我，</span></span><span class="hero-line"><span>和我的</span></span><span class="hero-line"><span>小小宇宙。</span></span><svg class="title-spark"><use href="#spark"/></svg></h1><p>有一些认真，有一些胡思乱想。<br>还有好多，说不清却想记住的瞬间。</p><a class="cream-button" href="#about">从认识我开始 <svg><use href="#arrow"/></svg></a></div>
+      <div class="drifting-doodles" aria-hidden="true"><span>✧</span><span>✳</span><span>+</span><span>✧</span><span>·</span></div>
+      <div class="sky-note">如果大地变成一颗酸橙，<br>就分你最甜的那一瓣。<svg viewBox="0 0 110 60"><path d="M5 8q70-14 65 25-3 20-28 9-16-16 23-15l31 16m-15-17 16 17-23 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="hero-bottom"><a href="#journal"><span class="scroll-line"></span>往下翻，慢慢认识我</a><span>慢慢走，也会到达。 <i>✳</i></span></div>
+      <svg class="hero-wave" viewBox="0 0 1440 64" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22Q190 70 435 35T925 32T1440 21V64H0Z" fill="#f7f4e9"/></svg>
+    </section>
+
+    <div class="ticker" aria-hidden="true"><span>STAY CURIOUS</span><svg><use href="#spark"/></svg><span>今天也有好事发生</span><svg><use href="#citrus"/></svg><span>TAKE THE SCENIC ROUTE</span><svg><use href="#spark"/></svg><span>把好奇心装进口袋</span></div>
+
+    <section class="about personal-about section-wrap" id="about" aria-labelledby="about-title">
+      <div class="about-illustration"><div class="about-circle"></div><div class="identity-card"><span class="identity-label">A SMALL INTRODUCTION</span><div class="portrait-sky"><span class="portrait-cloud"></span><svg viewBox="0 0 180 180" aria-hidden="true"><path d="M31 167q5-45 57-45t61 45" fill="#f5eed6"/><path d="M60 78q-7 60 29 62 39-2 35-62" fill="#f0cfab"/><path d="M54 96Q28 37 78 32q52-14 58 40l-8 37-15-32q-29 14-46-3l-6 26Z" fill="#506962"/><path d="M60 51q-22 5-24 27m25-31q-5-17 8-24" fill="none" stroke="#506962" stroke-width="9" stroke-linecap="round"/><path d="M78 104h1m26 0h1" stroke="#506962" stroke-width="5" stroke-linecap="round"/><path d="M87 119q5 4 11 0" fill="none" stroke="#be8b71" stroke-width="2" stroke-linecap="round"/><path d="m77 137 15 15 15-15" fill="none" stroke="#d9cfae" stroke-width="3"/></svg><span class="portrait-spark">✧</span></div><strong>一个还在认识自己的人</strong><span class="identity-caption">STILL GROWING, STILL WONDERING.</span><div class="identity-bottom"><span>此刻状态</span><span><i></i> 慢慢生长中</span></div></div><svg class="about-lime"><use href="#citrus"/></svg><span class="about-scribble">a person, not a perfect story.</span></div>
+      <div class="about-copy"><span class="eyebrow">01 / A LITTLE ABOUT ME</span><h2 id="about-title">你好，<br>这是我的<span>另一面。</span></h2><p class="about-lead">比起用几个标签介绍自己，<br>我更想让你看看，我在想些什么。</p><p>我会对一个问题追问很久，也会被一个很小的细节吸引。喜欢把模糊的想法写下来，让它们慢慢变成清楚的句子。</p><p>最近在接触代码，也在想，自己真正愿意花时间做的事是什么。答案还没写完，所以这里也会一直变化。</p><p>在这个角落，我想把感受写得诚实一点，把日子记得具体一点。你读到的，就是其中的一小部分。</p><div class="about-chips"><span>✳ 好奇心常驻</span><span>☁ 偶尔漫游</span><span>✎ 认真感受中</span></div><a class="text-button" href="#feelings">还有一些想说的话 <span>↘</span></a></div>
+    </section>
+
+    <section class="feelings-section" id="feelings" aria-labelledby="feelings-title"><div class="section-wrap"><div class="section-heading"><div><span class="eyebrow">02 / WEATHER INSIDE MY HEAD</span><h2 id="feelings-title">心里，也有天气。</h2><p>有些感受不太好解释，就先把它们放在这里。</p></div><span class="handwritten">a small forecast of me ↘</span></div><div class="feeling-layout"><div class="feeling-picker" role="group" aria-label="选择一张心情卡片"><button class="feeling-option selected" data-feeling="wonder" aria-pressed="true"><span>01</span><strong>对世界好奇</strong><i>✳</i></button><button class="feeling-option" data-feeling="uncertain" aria-pressed="false"><span>02</span><strong>偶尔没方向</strong><i>☁</i></button><button class="feeling-option" data-feeling="hope" aria-pressed="false"><span>03</span><strong>仍然有期待</strong><i>☀</i></button></div><div class="feeling-display" aria-live="polite" aria-atomic="true"><span class="feeling-symbol" id="feeling-symbol" aria-hidden="true">✳</span><span class="eyebrow" id="feeling-caption">CURIOUS / 晴，有一点风</span><h3 id="feeling-title">想知道，<br>世界为什么这样运转。</h3><p id="feeling-text">遇见一个有意思的问题，我总想再往里走一点。比起立刻得到答案，那个“原来如此”的瞬间，常常更让我着迷。</p><span class="feeling-footnote">一小块心情，不是我的全部。</span></div></div><div class="small-likes"><span class="likes-label">也想留一点位置给</span><span>☁ 没有目的的发呆</span><span>✧ 突然想通的瞬间</span><span>✎ 能说真话的地方</span></div></div></section>
+
+    <section class="journal section-wrap" id="journal" aria-labelledby="journal-title">
+      <div class="section-heading"><div><span class="eyebrow">03 / THINGS I NEVER SAID OUT LOUD</span><h2 id="journal-title">把心事，写成来信<span class="hand-star">✳</span></h2><p>不必每一篇都有结论。有些话，只是想找个地方放下。</p></div><button class="text-button" id="write-note">给今天留一句话 <span>↗</span></button></div>
+      <div class="journal-toolbar"><div class="filters" role="group" aria-label="手记分类"><button class="selected" data-filter="all" aria-pressed="true">全部 <sup>04</sup></button><button data-filter="self" aria-pressed="false">关于自己</button><button data-filter="life" aria-pressed="false">日常碎片</button><button data-filter="thoughts" aria-pressed="false">胡思乱想</button></div><span class="sample-label">LETTERS, NOT ANSWERS</span></div>
+      <div class="postcards" id="postcards">
+        <article class="postcard" data-category="self"><button class="post-open" data-article="myself"><span class="card-art self-art"><span class="art-label">A WORK IN PROGRESS</span><span class="self-art-circle"></span><span class="self-writing">我也正在，<br>认识我自己。</span><svg class="self-art-star"><use href="#spark"/></svg><span class="art-caption">there is more to me.</span></span><span class="card-meta">关于自己 <i>·</i> 一点自白</span><h3>我想成为的人，<br>还没有标准答案。</h3><p>如果暂时不能用一句话介绍自己，那就慢慢说。</p><span class="card-bottom">LETTER 001 <span>↗</span></span></button></article>
+        <article class="postcard" data-category="life"><button class="post-open" data-article="summer"><span class="card-art summer-art"><span class="art-label">THE ART OF DOING NOTHING</span><svg class="floating-lime"><use href="#citrus"/></svg><span class="summer-cloud cloud-one"></span><span class="summer-cloud cloud-two"></span><span class="summer-writing">今天的云，<br>有冰淇淋的味道。</span><span class="tiny-spark">✧</span></span><span class="card-meta">日常碎片 <i>·</i> 一封短笺</span><h3>一些不必有用的，<br>夏日收藏。</h3><p>把云、橘子汽水和傍晚的风，夹进今天这一页。</p><span class="card-bottom">LETTER 002 <span>↗</span></span></button></article>
+        <article class="postcard" data-category="thoughts"><button class="post-open" data-article="detour"><span class="card-art map-art"><span class="art-label">NO DESTINATION REQUIRED</span><svg viewBox="0 0 360 220" class="route-art"><path d="M-20 180C50 210 86 68 145 117s19 85 68 57 9-100 82-106 56-88 87-71" fill="none" stroke="#709f92" stroke-width="3" stroke-dasharray="6 8"/><circle cx="145" cy="117" r="8" fill="#ed9269" stroke="#fff9ea" stroke-width="4"/><path d="m273 67 24-21-3 33-9-10Z" fill="#e58151"/><path d="m52 65 12-28 7 20 18 6-27 8Z" fill="#f3b548"/><path d="M242 184q14-16 28 0m-10-9v18" fill="none" stroke="#719a8b" stroke-width="2"/></svg><span class="map-writing">走一点弯路，<br>也没关系。</span><span class="map-stamp">ON MY<br>WAY ☺</span></span><span class="card-meta">胡思乱想 <i>·</i> 一封短笺</span><h3>还没有答案，<br>也可以先出发。</h3><p>不急着给每一次尝试命名。有时候，路是走出来的。</p><span class="card-bottom">LETTER 003 <span>↗</span></span></button></article>
+      </div>
+      <div class="pocket-note" data-category="life"><span class="pocket-icon">✎</span><span><small>A NOTE IN MY POCKET</small><span id="saved-note">今天的空白，留给下一件值得记住的小事。</span></span><button id="edit-note" aria-label="编辑口袋便签">写一笔 ↗</button></div>
+      <p id="filter-status" class="sr-only" aria-live="polite"></p>
+    </section>
+
+    <section class="letter-section section-wrap" aria-labelledby="letter-title">
+      <div class="letter-paper"><span class="eyebrow">04 / IF YOU HAPPEN TO STOP BY</span><h2 id="letter-title">写给路过这里的你</h2><span class="letter-date">一封没有寄出日期的信</span><div class="letter-body"><p>你好呀。</p><p>隔着屏幕，我们也许还不认识。但你愿意在这里停一会儿，我就觉得，这些零零碎碎的字有了一个很好的去处。</p><p>我想留住的不只是“发生了什么”，还有那些时候的自己：被什么打动，为什么犹豫，又偷偷期待着什么。</p><p>如果某一句话恰好让你想起了自己，那就带走它吧。就像走过一棵树，恰好接住了一片叶子。</p><p>愿我们都能遇见喜欢的风景。也愿今天，有一件小事让你觉得：还不错。</p></div><div class="letter-signature">下次见。<span>这片天空的记录者</span><svg><use href="#citrus"/></svg></div></div>
+    </section>
+
+    <section class="closing"><span>愿你今天，也有一小块晴天。</span><svg><use href="#citrus"/></svg><p>UNTIL THE EVERYDAY BECOMES SOMETHING LOVELY.</p><a href="#home" aria-label="回到顶部">↑</a></section>
+  </main>
+  <footer class="footer"><span>© <span id="year">2026</span> 酸橙来信 <span class="footer-star">✳</span> 慢慢生长，自由发生。</span><span>个人非官方主题习作 · 参考视觉：明日方舟</span></footer>
+
+  <dialog id="reader-dialog" class="reader-dialog"><button class="close-dialog" aria-label="关闭文章">×</button><div class="reader-top">A POSTCARD FOR YOU <svg><use href="#citrus"/></svg></div><span class="eyebrow" id="reader-category"></span><h2 id="reader-title"></h2><div id="reader-content"></div><div class="reader-end">THANK YOU FOR STOPPING BY. &nbsp; ✳</div></dialog>
+  <dialog id="note-dialog" class="note-dialog"><button class="close-dialog" aria-label="关闭便签">×</button><span class="eyebrow">A SMALL NOTE TO TODAY</span><h2>今天，想记住什么？</h2><p>一句话也可以。它会留在这台设备的浏览器里。</p><form id="note-form"><label for="note-input">我的口袋便签</label><textarea id="note-input" maxlength="160" rows="4" placeholder="比如：今天有一阵风，让我想多走一会儿。" required></textarea><div class="note-form-bottom"><span id="char-count">0 / 160</span><button class="orange-button" type="submit">收进口袋 ↗</button></div></form><p id="storage-status" role="status"></p></dialog>
+
+  <div class="toast" id="toast" role="status"></div>
+  <script src="script.js"></script>
+</body>
+</html>

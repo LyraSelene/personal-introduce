@@ -1,0 +1,19 @@
+# Local secrets and environment files
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Dependency and temporary output
+node_modules/
+*.log
+*.tmp
+__pycache__/
