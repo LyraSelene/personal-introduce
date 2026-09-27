@@ -1,0 +1,32 @@
+/* Four illustrated transitions; each occupies its own row, never covers text. */
+.chapter-entry{--chapter-accent:#a8bead;position:relative;display:grid;grid-template-columns:1fr 210px;align-items:center;gap:25px;min-height:230px;padding:15px 35px;margin:0 0 34px;isolation:isolate;grid-column:1 / -1;border-bottom:1px solid #bcccbc80}
+.chapter-entry:before{content:'';position:absolute;inset:25px 0 30px;background:linear-gradient(110deg,#e9edde50,transparent);border-radius:50% 30% 45% 25%;z-index:-1}
+.chapter-copy{padding-left:40px;position:relative}.chapter-number{font:10px/1.5 var(--sans);letter-spacing:3px;color:#8ba391;display:block;margin-bottom:8px}.chapter-caption{font:28px/1.6 var(--display-en);color:#668c85;display:block}.chapter-subtitle{font:14px/1.8 var(--sans);color:#899b8e;margin:5px 0 0;letter-spacing:1px}
+.chapter-character{position:relative;width:210px;height:210px;display:grid;place-items:center;transform-origin:50% 80%;mix-blend-mode:multiply}.chapter-character img{display:block;width:100%;height:100%;object-fit:contain;transform-origin:50% 80%}.chapter-trail{position:absolute;left:0;top:0;width:100%;height:100%;z-index:-1;opacity:.6;overflow:visible;color:var(--chapter-accent)}.chapter-trail path{stroke-dasharray:6 9}.chapter-spark{position:absolute;color:#d6ac66;font:25px Georgia,serif;pointer-events:none}.chapter-spark.one{top:26px;right:6px}.chapter-spark.two{bottom:24px;left:4px;font-size:16px}.chapter-spark.three{left:-18px;top:80px;font-size:20px}
+.chapter-entry[data-chapter="plane"] .chapter-character{height:230px}.chapter-entry[data-chapter="camera"] .chapter-character{width:240px;margin-left:-25px}.chapter-entry[data-chapter="traveler"]{--chapter-accent:#83acbb}.chapter-entry[data-chapter="delivery"]{--chapter-accent:#d1b48a}
+.personal-about{row-gap:25px}.personal-about>.chapter-entry{margin-bottom:12px}.feelings-section>.section-wrap>.chapter-entry{margin-bottom:35px}.letter-section>.chapter-entry{max-width:815px;margin-inline:auto;margin-bottom:42px}
+/* Classes are only added when IntersectionObserver is available. No JS = static art. */
+.chapter-entry.is-active .chapter-copy{animation:chapter-words .85s .12s both cubic-bezier(.2,.7,.2,1)}
+.chapter-entry.is-active .chapter-trail path{animation:chapter-dash 2.6s ease-out both}
+.chapter-entry.is-active .chapter-spark{animation:chapter-twinkle 1.6s .5s 2 both}
+.chapter-entry.is-active .chapter-spark.two{animation-delay:.8s}.chapter-entry.is-active .chapter-spark.three{animation-delay:1.1s}
+.chapter-entry.is-active[data-chapter="plane"] .chapter-character{animation:chapter-plane 1.5s both cubic-bezier(.18,.72,.2,1)}
+.chapter-entry.is-active[data-chapter="plane"] img{animation:chapter-hover 3s 1.5s 2 ease-in-out}
+.chapter-entry.is-active[data-chapter="camera"] .chapter-character{animation:chapter-camera 1.25s both ease-out}
+.chapter-entry.is-active[data-chapter="camera"] img{animation:chapter-sway 2.7s 1.25s 2 ease-in-out}
+.chapter-entry.is-active[data-chapter="traveler"] .chapter-character{animation:chapter-travel 1.5s both cubic-bezier(.16,.75,.3,1)}
+.chapter-entry.is-active[data-chapter="traveler"] img{animation:chapter-hover 3.5s 1.5s 2 ease-in-out}
+.chapter-entry.is-active[data-chapter="delivery"] .chapter-character{animation:chapter-deliver 1.3s both ease-out}
+.chapter-entry.is-active[data-chapter="delivery"] img{animation:chapter-sway 2.8s 1.3s 2 ease-in-out}
+@keyframes chapter-plane{0%{opacity:0;transform:translate(-130px,35px) rotate(-17deg) scale(.8)}65%{opacity:1;transform:translate(9px,-12px) rotate(5deg)}100%{opacity:1;transform:none}}
+@keyframes chapter-camera{0%{opacity:0;transform:translateY(35px) rotate(-10deg) scale(.85)}60%{opacity:1;transform:translateY(-6px) rotate(4deg)}80%{transform:rotate(-2deg)}100%{opacity:1;transform:none}}
+@keyframes chapter-travel{0%{opacity:0;transform:translate(45px,45px) rotate(10deg) scale(.85)}65%{opacity:1;transform:translate(-4px,-10px) rotate(-3deg)}100%{opacity:1;transform:none}}
+@keyframes chapter-deliver{0%{opacity:0;transform:translate(-45px,25px) rotate(-8deg)}40%{opacity:1;transform:translate(-15px,-18px) rotate(5deg)}65%{transform:translateY(3px) scale(1.03,.96)}82%{transform:translateY(-7px) rotate(-2deg)}100%{opacity:1;transform:none}}
+@keyframes chapter-hover{0%,100%{transform:none}50%{transform:translateY(-8px) rotate(2deg)}}
+@keyframes chapter-sway{0%,100%{transform:none}35%{transform:rotate(-3deg)}70%{transform:rotate(3deg)}}
+@keyframes chapter-words{from{opacity:0;transform:translateY(15px)}to{opacity:1;transform:none}}
+@keyframes chapter-twinkle{0%,100%{opacity:.5;transform:scale(.8) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(30deg)}}
+@keyframes chapter-dash{from{stroke-dashoffset:100;opacity:0}to{stroke-dashoffset:0;opacity:1}}
+@media(max-width:760px){.chapter-entry{grid-template-columns:minmax(0,1fr) 126px;gap:5px;min-height:175px;padding:10px 0;margin-bottom:28px}.chapter-copy{padding-left:8px}.chapter-number{font-size:8px;letter-spacing:1px}.chapter-caption{font-size:20px;line-height:1.65}.chapter-subtitle{font-size:10px;letter-spacing:0;max-width:170px}.chapter-character{width:126px;height:150px}.chapter-entry[data-chapter="plane"] .chapter-character{height:175px}.chapter-entry[data-chapter="camera"] .chapter-character{width:140px;margin-left:-14px}.chapter-spark.one{right:2px;top:14px;font-size:19px}.chapter-spark.two{font-size:12px;bottom:12px}.chapter-spark.three{left:0;top:48px;font-size:14px}.chapter-trail{opacity:.35}.personal-about{row-gap:22px}.letter-section>.chapter-entry{margin-bottom:32px}.chapter-entry:before{inset:15px 0 20px}}
+@media(prefers-reduced-motion:reduce){.chapter-entry *{animation:none!important;transition:none!important}}
+body.motion-paused .chapter-entry *{animation:none!important;transition:none!important}
