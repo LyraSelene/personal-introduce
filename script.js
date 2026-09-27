@@ -27,23 +27,8 @@ $$('[data-filter]').forEach(button => button.addEventListener('click', () => {
   $$('[data-category]').forEach(card => { card.hidden = category !== 'all' && card.dataset.category !== category; });
   $('#filter-status').textContent = `显示${button.textContent.replace('04', '').trim()}：${$$('[data-category]').filter(card => !card.hidden).length} 条`;
 }));
-const storageKey = 'lime-postcards-pocket-note-v1';
-let note = '', toastTimer;
-try { note = localStorage.getItem(storageKey) || ''; } catch { /* Private browsing may disable storage. Editing still works in memory. */ }
-if (note) $('#saved-note').textContent = note;
+let toastTimer;
 function showToast(text) { $('#toast').textContent = text; $('#toast').classList.add('visible'); clearTimeout(toastTimer); toastTimer = setTimeout(() => $('#toast').classList.remove('visible'), 3500); }
-function openNote() { $('#note-input').value = note; $('#char-count').textContent = `${note.length} / 160`; $('#storage-status').textContent = ''; openDialog($('#note-dialog')); $('#note-input').focus(); }
-['#write-note', '#edit-note'].forEach(id => $(id).addEventListener('click', openNote));
-$('#note-input').addEventListener('input', event => { $('#char-count').textContent = `${event.target.value.length} / 160`; event.target.setCustomValidity(''); });
-$('#note-form').addEventListener('submit', event => {
-  event.preventDefault();
-  const input = $('#note-input');
-  if (!input.value.trim()) { input.setCustomValidity('写下一点内容，再收进口袋吧。'); input.reportValidity(); return; }
-  note = input.value.trim();
-  $('#saved-note').textContent = note;
-  try { localStorage.setItem(storageKey, note); closeDialog($('#note-dialog')); showToast('已经收进口袋。下次回来，它还在。'); }
-  catch { $('#storage-status').textContent = '便签已显示在本页，但浏览器不允许本地保存，刷新后可能丢失。'; }
-});
 $('#sky-switch').addEventListener('click', () => {
   const dusk = document.body.classList.toggle('dusk');
   $('#sky-switch').setAttribute('aria-pressed', dusk);
