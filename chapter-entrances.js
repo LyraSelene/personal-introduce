@@ -2,17 +2,17 @@
 (() => {
   if (!('IntersectionObserver' in window) || !Element.prototype.animate) return;
   const definitions = [
-    ['about', 'plane', 'paper-plane.jpg'],
-    ['feelings', 'camera', 'camera.jpg'],
-    ['journal', 'traveler', 'traveler.jpg'],
-    ['letter', 'delivery', 'delivery.jpg']
+    ['about', 'plane', 'paper-plane.webp'],
+    ['feelings', 'camera', 'camera.webp'],
+    ['journal', 'traveler', 'traveler.webp'],
+    ['letter', 'delivery', 'delivery.webp']
   ];
   const reduced = matchMedia('(prefers-reduced-motion: reduce)');
   const disabled = () => reduced.matches || document.body.classList.contains('motion-paused');
   const overlay = document.createElement('div');
   overlay.className = 'chapter-cut-in';
   overlay.setAttribute('aria-hidden', 'true');
-  overlay.innerHTML = '<div class="cut-in-ribbon"></div><div class="cut-in-character"><img alt=""></div><span class="cut-in-spark">✧</span><span class="cut-in-spark">✳</span>';
+  overlay.innerHTML = '<div class="cut-in-character"><img alt=""></div><span class="cut-in-spark">✧</span><span class="cut-in-spark">✳</span>';
   document.body.append(overlay);
   const character = overlay.querySelector('.cut-in-character');
   const image = overlay.querySelector('img');
@@ -41,10 +41,10 @@
     opacity, offset
   });
   const paths = {
-    plane: [frame(-360,90,-20,.7,0,0),frame(-60,-8,3,1,1,.3),frame(60,-20,-4,1,1,.65),frame(440,-180,13,.75,0,1)],
-    camera: [frame(160,100,14,.7,0,0),frame(0,0,-5,1,1,.3),frame(0,-5,4,1.04,1,.5),frame(0,0,-2,1,1,.7),frame(-130,-60,-12,.65,0,1)],
-    traveler: [frame(270,70,12,.8,0,0),frame(15,-12,-4,1,1,.35),frame(-20,3,2,1,1,.68),frame(-340,-70,-8,.8,0,1)],
-    delivery: [frame(-260,60,-13,.8,0,0),frame(-50,-30,8,1,1,.27),frame(0,10,-3,1,1,.43),frame(30,-15,5,1,1,.64),frame(290,50,13,.85,0,1)]
+    plane: [frame(-35,18,-6,.94,0,0),frame(-8,-3,1,1,.78,.32),frame(8,-8,-1,1,.78,.64),frame(36,-26,3,.96,0,1)],
+    camera: [frame(12,22,4,.96,0,0),frame(0,0,-2,1,.78,.32),frame(0,-3,2,1,.78,.6),frame(4,-12,0,.98,0,1)],
+    traveler: [frame(18,22,3,.95,0,0),frame(0,-4,-1,1,.78,.32),frame(-4,0,1,1,.78,.64),frame(-12,-18,-2,.98,0,1)],
+    delivery: [frame(-18,20,-4,.95,0,0),frame(-5,-5,2,1,.78,.32),frame(0,2,-1,1,.78,.52),frame(4,-3,1,1,.7,.72),frame(18,-10,2,.98,0,1)]
   };
   async function enter(section) {
     stop();
@@ -55,25 +55,24 @@
     try { await Promise.race([asset.decode(), new Promise(resolve => setTimeout(resolve, 250))]); } catch { return; }
     if (ticket !== generation || disabled() || !asset.complete || !asset.naturalWidth) return;
     image.src = asset.src;
+    overlay.dataset.character = kind;
+    // A small illustration near the section's outer edge, never a fullscreen wipe.
+    const bounds = section.getBoundingClientRect();
+    const small = innerWidth <= 760;
+    const radius = small ? 70 : 110;
+    const x = Math.min(innerWidth - radius + 10, bounds.right - (small ? 30 : 20));
+    const y = Math.max(radius + 30, Math.min(innerHeight - radius - 30, bounds.top + (small ? 115 : 160)));
+    overlay.style.setProperty('--cut-x', x + 'px');
+    overlay.style.setProperty('--cut-y', y + 'px');
     overlay.classList.add('is-playing');
-    const duration = 1550;
+    const duration = 2300;
     const options = {duration, easing:'ease-in-out', fill:'both'};
     const travel = animate(character, paths[kind], options);
-    animate(overlay.querySelector('.cut-in-ribbon'), [
-      {opacity:0,transform:'translateX(-100%) rotate(-9deg)',offset:0},
-      {opacity:.9,transform:'translateX(0) rotate(-9deg)',offset:.3},
-      {opacity:.6,transform:'translateX(10%) rotate(-9deg)',offset:.65},
-      {opacity:0,transform:'translateX(100%) rotate(-9deg)',offset:1}
-    ], options);
     overlay.querySelectorAll('.cut-in-spark').forEach((spark, index) => animate(spark, [
-      {opacity:0,scale:.4,rotate:'-30deg'},
-      {opacity:.9,scale:1.2,rotate:'20deg',offset:.4},
-      {opacity:0,scale:.7,rotate:'60deg'}
-    ], {duration:1000,delay:200+index*120,fill:'both'}));
-    // Reveal the actual module under the departing character, without changing layout.
-    animate(section, [
-      {opacity:.35,translate:'0 22px'}, {opacity:1,translate:'0 0'}
-    ], {duration:800,delay:220,easing:'cubic-bezier(.2,.7,.2,1)',fill:'backwards'});
+      {opacity:0,scale:.8,rotate:'-8deg'},
+      {opacity:.35,scale:1,rotate:'8deg',offset:.4},
+      {opacity:0,scale:.9,rotate:'16deg'}
+    ], {duration:1700,delay:200+index*120,fill:'both'}));
     try { await travel.finished; } catch { return; }
     if (ticket === generation) stop();
   }
