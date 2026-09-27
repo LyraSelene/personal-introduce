@@ -21,7 +21,11 @@
 
 支持晴天／日落配色切换、手机布局、键盘操作、滚动入场动画和动效暂停。没有账号系统、后台服务、评论服务或数据上传。
 
-## 本地浏览
+## 在线访问与本地浏览
+
+**直接分享网站：** <https://sixmonth12.github.io/personal-introduce/>
+
+这是已经发布的 GitHub Pages 地址，别人打开链接即可访问，不需要下载仓库。
 
 无需 Node.js、安装依赖或执行构建。
 
@@ -29,17 +33,9 @@
 2. 保留目录结构，用现代浏览器打开 `index.html`。
 
 ```bash
-git clone https://github.com/Sixmonth12/-.git lime-personal-site
+git clone https://github.com/Sixmonth12/personal-introduce.git lime-personal-site
 cd lime-personal-site
 ```
-
-若更习惯通过本地 HTTP 浏览，安装 Python 后也可以运行：
-
-```bash
-python -m http.server 8000 --bind 127.0.0.1
-```
-
-然后打开 <http://localhost:8000>。浏览网站不需要运行任何服务器；上述命令只是可选方式。
 
 ## 目录结构
 
@@ -79,7 +75,7 @@ python -m http.server 8000 --bind 127.0.0.1
 
 便签使用 `localStorage`，只保存在**当前设备、当前浏览器、当前网站来源**下，不上传到 GitHub，也不会显示给其他访客。
 
-清除浏览器数据可能删除便签；本地文件、localhost 与正式域名的便签不保证共享。浏览器禁止保存时，页面会说明保存失败。
+清除浏览器数据可能删除便签；本地文件与 GitHub Pages 网站的便签不保证共享。浏览器禁止保存时，页面会说明保存失败。
 
 ## Git 备份
 
@@ -95,11 +91,13 @@ git push
 
 提交前检查文件列表。`.gitignore` 已排除常见环境文件、私钥文件、依赖目录和临时文件。
 
-## 可选：发布网站
+## GitHub Pages 发布
 
-上传仓库是源码备份，不等于已经开启网站托管。本项目可部署到支持静态文件的平台，无需构建。
+本仓库已经开启 GitHub Pages，从 `main` 分支根目录发布。上传源码是备份，GitHub Pages 才是对外分享入口：
 
-若仓库和账号方案支持 GitHub Pages，可在仓库的 **Settings → Pages** 中选择从分支部署，使用 `main` 分支的根目录。部署后的地址以 GitHub Pages 设置页显示为准。
+<https://sixmonth12.github.io/personal-introduce/>
+
+如果未来关闭 Pages 或更换仓库，需要在仓库的 **Settings → Pages** 中重新选择 `main` 分支的根目录；通常修改 `main` 后 GitHub 会自动重新构建。
 
 ## 素材与说明
 
