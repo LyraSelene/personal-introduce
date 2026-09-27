@@ -64,6 +64,8 @@ cd lime-personal-site
 
 ## 动画与可访问性
 
+标题与导航参考活动 UI，使用手写中文、卷曲英文、错落字形和星形卷线装饰；正文保留清晰的阅读字体。样式位于 `lettering.css`。本地托管的 Henny Penny 与 ZCOOL KuaiLe 字体遵循 SIL Open Font License，许可证位于 `assets/fonts/`。字体已按本站内容精简，添加新中文标题时需补充相应字形，否则会使用后备字体。并非游戏原版定制字形。
+
 - 开场短笺自动退场，按 `Tab` 或 `Escape` 可以跳过。
 - 标题与导航错落入场，内容进入视野时轻量浮现。
 - 使用原生 CSS、Web Animations API 和 IntersectionObserver，无第三方动画库。
