@@ -51,6 +51,33 @@ $('#sky-switch').addEventListener('click', () => {
   $('.sky-label').textContent = dusk ? '日落时分' : '今日晴';
   $('.sun-icon').textContent = dusk ? '☾' : '☀';
 });
+const bgm = $('#bgm');
+const bgmToggle = $('#bgm-toggle');
+const bgmLabel = $('.bgm-label', bgmToggle);
+function syncBgm() {
+  const playing = !bgm.paused;
+  bgmToggle.classList.toggle('playing', playing);
+  bgmToggle.setAttribute('aria-pressed', String(playing));
+  bgmToggle.setAttribute('aria-label', playing ? '暂停背景音乐' : '播放背景音乐');
+  bgmLabel.textContent = playing ? '正在播放' : '播放 BGM';
+}
+bgmToggle.addEventListener('click', async () => {
+  if (bgm.paused) {
+    try {
+      await bgm.play();
+      try { localStorage.setItem('lime-bgm-enabled-v1', 'true'); } catch { /* optional */ }
+    } catch { showToast('音乐暂时无法播放，请检查网络或网易云链接。'); }
+  } else {
+    bgm.pause();
+    try { localStorage.setItem('lime-bgm-enabled-v1', 'false'); } catch { /* optional */ }
+  }
+  syncBgm();
+});
+bgm.addEventListener('play', syncBgm);
+bgm.addEventListener('pause', syncBgm);
+bgm.addEventListener('error', () => { bgm.pause(); syncBgm(); showToast('音乐链接暂时不可用，网站其他内容仍可正常浏览。'); });
+try { if (localStorage.getItem('lime-bgm-enabled-v1') === 'true') bgm.play().catch(() => {}); } catch { /* optional */ }
+syncBgm();
 $('#year').textContent = new Date().getFullYear();
 const navigation = $$('.site-header nav a');
 if ('IntersectionObserver' in window) {
