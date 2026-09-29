@@ -6,6 +6,7 @@
   const validConfig = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl || '') && !!config.supabaseKey && !config.supabaseKey.startsWith('sb_secret_');
   const db = validConfig && window.supabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseKey) : null;
   let user = null, owner = false, sessionVersion = 0, publicOffset = 0, journalOffset = 0;
+  let pendingDiscussion=null;
   const categories = { self: '关于自己', life: '日常碎片', thoughts: '胡思乱想', review: '评价', suggestion: '建议', question: '提问' };
   const date = value => new Date(value).toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
   const node = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text !== undefined) el.textContent = text; return el; };
@@ -121,6 +122,7 @@
   function authDialog(mode='login') {
     if(!requireBackend())return;
     const d=modal(mode==='reset'?'设置新密码':mode==='signup'?'注册一个账号':mode==='recovery'?'找回密码':'欢迎回来');
+    d.addEventListener('close',()=>{setTimeout(()=>{if(!user&&!document.querySelector('.auth-dialog'))pendingDiscussion=null;},0);});
     d.classList.add('auth-dialog');
     const greeting=node('span','auth-script',{login:'Welcome Back',signup:'Hello, You',recovery:'Find Your Way',reset:'A New Start'}[mode]);
     greeting.lang='en';
@@ -159,10 +161,48 @@
       fields.get(key).apply(value);q('[data-feeling].selected')?.click();out.textContent='已保存，所有访客都会看到更新。';
     });});
   }
+  const recent=node('section','recent-updates');recent.setAttribute('aria-label','最近更新');
+  recent.append(node('span','section-script','Fresh Letters'),node('h2','','最近更新'));
+  const recentList=node('div','recent-list'),recentStatus=status(recent);
+  const recentRetry=button('重新加载',()=>loadRecent());recentRetry.hidden=true;
+  recent.append(recentList,recentRetry);q('#home .hero-bottom').before(recent);
+  async function loadRecent(){
+    if(!db){recentStatus.textContent='新的心事，会慢慢写在这里。';return;}
+    recentRetry.disabled=true;
+    try{
+      const posts=check(await db.from('journal_posts').select('id,title,body,category,published,created_at,updated_at').eq('published',true).is('deleted_at',null).order('updated_at',{ascending:false}).order('id',{ascending:false}).range(0,2));
+      recentList.replaceChildren();
+      posts.forEach(post=>{
+        const b=button('',()=>openJournal(post),'recent-entry');
+        b.append(node('span','message-meta',`${categories[post.category]} · 更新于 ${date(post.updated_at)}`),node('strong','',post.title),node('span','recent-excerpt',post.body.slice(0,65)+(post.body.length>65?'…':'')));
+        recentList.append(b);
+      });recentStatus.textContent=posts.length?'':'还没有公开的心事，期待下一封来信。';recentRetry.hidden=true;
+    }catch(e){recentStatus.textContent=errorText(e);recentRetry.hidden=false;}finally{recentRetry.disabled=false;}
+  }
+  function openJournal(post){
+    const d=modal(post.title);d.append(node('p','message-meta',`${categories[post.category]} · 写于 ${date(post.created_at)}`));
+    const body=node('div','system-journal-body');body.append(node('p','',post.body));d.append(body);
+    if(owner)d.append(button('编辑这篇',()=>{d.close();editJournal(post);}));
+    const discussion=node('section','journal-discussion');discussion.append(node('h3','','聊聊这一篇'),node('p','system-note','默认只有你和站主可见。允许公开且经站主发布的交流，会出现在这里。'));
+    discussion.append(button('写下读后感 / 提问',()=>sendMessage(post),'primary'));
+    const list=node('div','manage-list'),out=status(discussion);discussion.append(list);
+    let offset=0;const more=button('查看更多交流',()=>load(false));discussion.append(more);d.append(discussion);
+    async function load(reset=true){
+      more.disabled=true;
+      try{
+        await consentReady();const start=reset?0:offset;
+        const rows=check(await db.rpc('public_journal_messages',{target_journal_id:post.id,page_offset:start}));
+        if(!d.isConnected)return;
+        if(reset)list.replaceChildren();rows.forEach(row=>list.append(messageCard(row)));offset=start+rows.length;
+        out.textContent=offset?'':'还没有公开的交流，你的感受也可以只写给我。';more.hidden=rows.length<20;more.textContent='查看更多交流';
+      }catch{out.textContent='交流暂时无法加载，请稍后重试。';more.hidden=false;more.textContent='重新加载交流';}finally{more.disabled=false;}
+    }load();
+  }
   const journalMore=button('再读一些心事',()=>fetchJournal(false));q('#postcards').after(journalMore);journalMore.hidden=true;
   const journalStatus=node('p','system-status');journalMore.after(journalStatus);journalStatus.setAttribute('role','status');
   async function fetchJournal(reset=true) {
     if(!db)return;
+    if(reset)loadRecent();
     journalMore.disabled=true;
     try {
       const offset=reset?0:journalOffset;
@@ -175,7 +215,7 @@
         const meta=node('span','card-meta',categories[post.category]);
         const time=node('time','post-date',`写于 ${date(post.created_at)}`);time.dateTime=post.created_at;
         open.append(art,meta,node('h3','',post.title),time,node('p','',post.body.slice(0,90)+(post.body.length>90?'…':'')),node('span','card-bottom','读这封信 ↗'));
-        open.addEventListener('click',()=>{const d=modal(post.title);d.append(node('p','message-meta',`${categories[post.category]} · 写于 ${date(post.created_at)}`));const body=node('div','system-journal-body');body.append(node('p','',post.body));d.append(body);if(owner)d.append(button('编辑这篇',()=>{d.close();editJournal(post);}));});
+        open.addEventListener('click',()=>openJournal(post));
         article.append(open);q('#postcards').append(article);
       });
       journalOffset=offset+rows.length;journalMore.hidden=rows.length<12;
@@ -329,9 +369,10 @@
     const card=node('article','message-card');card.append(node('span','message-meta',`${categories[row.category]} · ${date(row.created_at)}`),node('h3','',row.display_name),node('p','',row.body));
     if(row.reply)card.append(node('p','message-reply',`我的回复\n${row.reply}`));return card;
   }
-  function sendMessage() {
-    if(!requireBackend())return;if(!user){authDialog();return;}
+  function sendMessage(post=null) {
+    if(!requireBackend())return;if(!user){pendingDiscussion=post;authDialog();return;}
     const d=modal('给我写一封来信'),f=node('form','system-form');d.append(f);
+    if(post)f.append(node('p','discussion-context',`关于《${post.title}》`));
     f.append(node('p','system-note','默认私密。选择允许公开后，站主才可公开昵称、原文和回复；允许公开不代表立即发布。'));
     const name=field(f,'希望我怎么称呼你','text','',40);name.required=true;
     const category=select(f,'这封信是',{review:'评价',suggestion:'建议',question:'提问'},'review');
@@ -341,7 +382,10 @@
     f.addEventListener('submit',e=>{e.preventDefault();busy(f,out,async()=>{
       if(!name.value.trim()||!body.value.trim())throw Error('昵称和来信不能只有空白。');
       await consentReady();
-      check(await db.from('visitor_messages').insert({display_name:name.value.trim(),category:category.value,body:body.value.trim(),allow_public:consent.value==='public'}).select('id').single());
+      if(post){const ready=await db.rpc('public_journal_messages',{target_journal_id:post.id,page_offset:0});if(ready.error)throw Error('文章交流正在升级，内容尚未发送，请稍后重试。');}
+      const payload={display_name:name.value.trim(),category:category.value,body:body.value.trim(),allow_public:consent.value==='public'};
+      if(post)payload.journal_id=post.id;
+      check(await db.from('visitor_messages').insert(payload).select('id').single());
       d.close();showToast('来信已私密送达。谢谢你愿意写给我。');
     });});
   }
@@ -356,6 +400,11 @@
         if(!manage)req=req.eq('author_id',user.id).is('deleted_at',null);
         const rows=check(await req);rows.forEach(row=>{
           const card=messageCard(row);card.append(node('p','message-meta',row.deleted_at?'已收起':row.published?'已公开':'私密来信'));
+          if(row.journal_id){
+            const related=button('查看关联心事',async()=>{
+              try{const p=check(await db.from('journal_posts').select('*').eq('id',row.journal_id).single());if(!p||p.deleted_at)throw Error('这篇心事已不可浏览。');openJournal(p);}catch(e){showToast(errorText(e));}
+            });card.prepend(related);
+          }
           card.append(node('p','system-note',row.allow_public?'发信人允许公开':'仅给站主看 · 不允许公开'));
           if(manage){const actions=node('div','system-actions');actions.append(button('回复 / 设置公开',()=>{d.close();editMessage(row);}),button(row.deleted_at?'恢复为私密':'收起这封信',async()=>{
             await busy(card,out,async()=>{check(await db.from('visitor_messages').update({deleted_at:row.deleted_at?null:new Date().toISOString(),published:false}).eq('id',row.id).select('id').single());card.remove();out.textContent='状态已更新，重新打开列表可查看。';await loadPublicMessages();});
@@ -380,6 +429,7 @@
     document.querySelectorAll('.system-dialog').forEach(d=>d.close());renderAccount();
     if(user)try{const result=check(await db.rpc('is_site_owner'));if(version!==sessionVersion)return;owner=result===true;}catch(e){showToast(errorText(e));}
     if(version===sessionVersion)renderAccount();
+    if(version===sessionVersion&&user&&pendingDiscussion){const post=pendingDiscussion;pendingDiscussion=null;sendMessage(post);}
   }
   renderAccount();
   if(db){
@@ -394,6 +444,7 @@
     });
     loadText().catch(e=>showToast(`文字暂未同步。${errorText(e)}`));fetchJournal();loadPublicMessages();
   }else{
+    loadRecent();
     boardStatus.textContent='来信功能正在准备中，网站内容可正常浏览。';
     q('[data-filter="all"] sup').textContent='03';
   }

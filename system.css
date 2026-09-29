@@ -44,6 +44,20 @@
 .system-journal-body { padding: 5px 0; }
 .system-journal-body p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .system-draft { color: #99783d; }
+.recent-updates { position:relative; z-index:1; width:min(760px,100%); margin:38px 0 4px; padding:22px; border:1px solid #fff4d670; border-radius:3px 3px 18px 3px; background:#faf6e9f2; color:var(--ink); box-shadow:0 8px 28px #163e5015; }
+.recent-updates h2 { margin:0 0 15px; font:400 25px/1.5 var(--display-cn); }
+.recent-updates .section-script { font-size:20px; }
+.recent-updates .system-status:empty { display:none; }
+.recent-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.recent-entry.system-button { width:100%; display:flex; flex-direction:column; gap:8px; text-align:left; white-space:normal; background:#fffdf5; border:1px solid #d7ddce; border-radius:3px; padding:15px; overflow-wrap:anywhere; }
+.recent-entry strong { font:400 18px/1.5 var(--display-cn); }
+.recent-entry .message-meta { margin:0; font-size:10px; }
+.recent-excerpt { font:12px/1.8 var(--sans); color:#718177; }
+.journal-discussion { margin-top:28px; padding-top:22px; border-top:1px dashed #bccabb; }
+.journal-discussion h3 { font:400 24px/1.5 var(--display-cn); }
+.journal-discussion .manage-list { margin:18px 0; }
+.discussion-context { padding:12px 16px; border-left:3px solid var(--orange); background:#eeefdf; overflow-wrap:anywhere; }
+@media(max-width:640px) { .recent-list { grid-template-columns:1fr; } .recent-updates { padding:18px; } .recent-entry.system-button { gap:5px; } }
 .draft-recovery { padding:16px; background:#edf0df; border:1px dashed #a2b8a0; border-radius:8px; }
 .draft-status { margin:0; font-size:12px; }
 .journal-preview h3 { font-family:var(--display-cn); font-weight:400; overflow-wrap:anywhere; }

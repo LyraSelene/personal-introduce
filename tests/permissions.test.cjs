@@ -81,5 +81,27 @@ test('database enforces owner editing, private messages and publication boundari
     await as('anon');
     assert.equal((await rows('select * from public.public_messages()')).length,0);
     assert.equal((await rows('select * from public.journal_posts')).length,0);
+    // Article discussions remain private until consent + moderation, and disappear
+    // from public APIs when the parent is withdrawn. Ordinary letters stay separate.
+    await as('authenticated',owner);
+    await assert.rejects(db.exec(`insert into public.visitor_messages(display_name,category,body,journal_id) values ('Owner','question','On a deleted article','${post}')`),/not available/);
+    await db.exec(`update public.journal_posts set deleted_at=null,published=true where id='${post}';
+      insert into public.visitor_messages(display_name,category,body,journal_id,allow_public) values ('Owner','question','Article discussion','${post}',true);`);
+    await as('anon');
+    assert.equal((await rows(`select * from public.public_journal_messages('${post}')`)).length,0);
+    await as('authenticated',owner);
+    await db.exec(`update public.visitor_messages set published=true where journal_id='${post}'`);
+    await assert.rejects(db.exec(`update public.visitor_messages set journal_id=null where journal_id='${post}'`),/article cannot be changed/);
+    await as('anon');
+    const comments=await rows(`select * from public.public_journal_messages('${post}')`);
+    assert.equal(comments.length,1);assert.equal('author_id' in comments[0],false);
+    assert.equal((await rows('select * from public.public_messages()')).length,0);
+    await as('authenticated',owner);
+    await db.exec(`update public.journal_posts set published=false where id='${post}'`);
+    await as('anon');
+    assert.equal((await rows(`select * from public.public_journal_messages('${post}')`)).length,0);
+    await db.exec('reset role');
+    const migration=readFileSync('supabase/migration-journal-comments.sql','utf8');
+    await db.exec(migration);await db.exec(migration);
   } finally { await db.close(); }
 });

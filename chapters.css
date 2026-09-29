@@ -14,6 +14,7 @@ html.chapter-mode, .chapter-mode body { height:100%; overflow:hidden; scroll-beh
 .chapter-mode .hero-bottom .scroll-line { width:27px; height:1px; }
 .chapter-mode .hero-bottom .scroll-line::after { left:auto; right:0; bottom:-2px; transform:rotate(-45deg); }
 .chapter-mode .hero-coordinate { top:150px; }
+.chapter-mode .hero .sky-note { position:relative; inset:auto; align-self:flex-end; margin:22px 0; }
 .chapter-mode .motion-toggle { z-index:22; bottom:28px; }
 .chapter-mode .toast { z-index:80; bottom:112px; }
 .chapter-nav { position:fixed; bottom:max(20px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:20; display:flex; align-items:center; justify-content:space-between; gap:7px; width:min(560px,calc(100vw - 32px)); min-height:78px; padding:7px 13px; border:1px solid #ded9c7; border-radius:6px 6px 20px 6px; background:linear-gradient(110deg,#fffcf2f5,#f2efdfef); backdrop-filter:blur(16px); box-shadow:0 8px 28px #294a4e14, inset 0 1px #ffffffb8; }

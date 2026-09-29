@@ -48,11 +48,11 @@ function fakeClient(isOwner) {
   return {calls,
     auth:{onAuthStateChange(fn){cb=fn;setTimeout(()=>fn('INITIAL_SESSION',{user:{id:'me'},access_token:'one'}),0);},async signOut(){cb('SIGNED_OUT',null);return {data:{},error:null};}},
     rpc(name){return Promise.resolve({data:name==='is_site_owner'?isOwner:name==='message_consent_ready'?true:[],error:null});},
-    from(table){let operation='select',payload;const chain={
-      select(){return chain;},eq(){return chain;},is(){return chain;},order(){return chain;},range(){return chain;},
+    from(table){let operation='select',payload;const filters=[],orders=[];let range;const chain={
+      select(){return chain;},eq(...args){filters.push(args);return chain;},is(...args){filters.push(args);return chain;},order(...args){orders.push(args);return chain;},range(...args){range=args;return chain;},
       update(value){operation='update';payload=value;return chain;},insert(value){operation='insert';payload=value;return chain;},upsert(value){operation='upsert';payload=value;return chain;},
       single(){return chain;},
-      then(resolve,reject){calls.push({table,operation,payload});return Promise.resolve({data:operation==='select'?(table==='journal_posts'?[post]:[]):{id:'saved'},error:null}).then(resolve,reject);}
+      then(resolve,reject){calls.push({table,operation,payload,filters,orders,range});return Promise.resolve({data:operation==='select'?(table==='journal_posts'?[post]:[]):{id:'saved'},error:null}).then(resolve,reject);}
     };return chain;}
   };
 }
@@ -127,6 +127,24 @@ test('owner may edit a published entry without silently turning it into a draft;
   [...d.querySelectorAll('.account-dock button')].find(b=>b.textContent==='退出').click();await tick();
   assert.equal(d.querySelector('.system-dialog'),null);assert.equal(d.querySelector('#write-note').hidden,true);
   dom.window.close();
+});
+test('recent updates open article and discussion submits linked private letter',async()=>{
+  const client=fakeClient(false),dom=page(client),w=dom.window,d=w.document;await tick();await tick();
+  try{
+    const query=client.calls.find(c=>c.range?.[1]===2);
+    assert.deepEqual(query.filters,[['published',true],['deleted_at',null]]);
+    assert.equal(query.orders[0][0],'updated_at');
+    const recent=d.querySelector('.recent-entry');assert.ok(recent);assert.equal(recent.querySelector('img'),null);recent.click();
+    const article=d.querySelector('.system-dialog');
+    [...article.querySelectorAll('button')].find(b=>b.textContent==='写下读后感 / 提问').click();
+    const form=[...d.querySelectorAll('.system-dialog form')].at(-1);
+    assert.match(form.querySelector('.discussion-context').textContent,/Hello/);
+    form.querySelector('input').value='A reader';form.querySelector('textarea').value='This made me think';
+    form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    const inserted=client.calls.find(c=>c.operation==='insert').payload;
+    assert.equal(inserted.journal_id,'post-1');assert.equal(inserted.allow_public,false);
+    article.close();await tick();
+  }finally{dom.window.close();}
 });
 test('ordinary account receives submission controls but no owner tools',async()=>{
   const dom=page(fakeClient(false));await tick();await tick();const d=dom.window.document;
