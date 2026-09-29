@@ -116,9 +116,13 @@
   function authDialog(mode='login') {
     if(!requireBackend())return;
     const d=modal(mode==='reset'?'设置新密码':mode==='signup'?'注册一个账号':mode==='recovery'?'找回密码':'欢迎回来');
+    d.classList.add('auth-dialog');
+    const greeting=node('span','auth-script',{login:'Welcome Back',signup:'Hello, You',recovery:'Find Your Way',reset:'A New Start'}[mode]);
+    greeting.lang='en';
+    d.querySelector('h2').before(greeting);
     const f=node('form','system-form'); d.append(f);
     let email,password;
-    if(mode!=='reset') {email=field(f,'邮箱','email');email.required=true;email.autocomplete='email';}
+    if(mode!=='reset') {email=field(f,'账号','email');email.required=true;email.autocomplete='email';}
     if(mode==='login'||mode==='signup'||mode==='reset') {password=field(f,mode==='reset'?'新密码（至少 10 位）':'密码（至少 10 位）','password');password.required=true;password.minLength=mode==='login'?1:10;password.autocomplete=mode==='login'?'current-password':'new-password';}
     submit(f,{login:'登录',signup:'注册并发送验证邮件',recovery:'发送重置邮件',reset:'保存新密码'}[mode]);
     const out=status(f);

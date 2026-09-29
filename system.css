@@ -44,4 +44,120 @@
 .system-journal-body { padding: 5px 0; }
 .system-journal-body p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .system-draft { color: #99783d; }
+/* Account forms share the site's sky, handwritten headings and letter paper. */
+.system-dialog.auth-dialog {
+  position: relative;
+  width: min(540px, calc(100vw - 28px));
+  padding: 138px 38px 28px;
+  border: 1px solid #fff7e5;
+  border-radius: 5px 5px 20px 5px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  box-shadow: 0 24px 80px #193d5060;
+}
+.auth-dialog::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 112px;
+  background: linear-gradient(90deg,#28688775,#488faf20), url('assets/summer-sky.jpg') 55% 42% / cover;
+  border-radius: 0 0 50% 8% / 0 0 14px 8px;
+  pointer-events: none;
+}
+.auth-dialog::after {
+  content: '✳';
+  position: absolute;
+  top: 65px;
+  right: 36px;
+  color: #ffe5a6;
+  font: 46px/1 Georgia,serif;
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+.auth-dialog .dialog-x {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 1;
+  float: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #fff8e878;
+  border-radius: 50%;
+  background: #27566c55;
+  color: #fff9e9;
+  font: 28px/1 var(--sans);
+}
+.auth-dialog .dialog-x:hover { background: #27566c99; }
+.auth-dialog .system-kicker {
+  display: block;
+  position: absolute;
+  top: 32px;
+  left: 38px;
+  max-width: calc(100% - 116px);
+  color: #fff8e8;
+  font: 9px/1.8 var(--sans);
+  letter-spacing: .17em;
+}
+.auth-script {
+  display: block;
+  width: fit-content;
+  color: #9b704c;
+  font: 23px/1.5 var(--display-en);
+  transform: rotate(-3deg);
+}
+.auth-dialog h2 {
+  margin: 6px 0 26px;
+  font: 400 34px/1.4 var(--display-cn);
+  letter-spacing: 2px;
+}
+.auth-dialog .system-form { gap: 18px; }
+.auth-dialog .system-field { gap: 8px; font: 15px/1.6 var(--sans); }
+.auth-dialog .system-field input {
+  padding: 11px 13px;
+  border: 1px solid #bacac2;
+  border-bottom: 2px solid #9eb7ae;
+  border-radius: 3px;
+  background: #fffdf6;
+  font-family: var(--sans);
+  box-shadow: inset 0 2px 5px #526a5a05;
+}
+.auth-dialog .system-button.primary {
+  min-height: 46px;
+  margin-top: 5px;
+  border: 1px solid #426c6a;
+  border-radius: 3px;
+  box-shadow: 3px 3px 0 #cdd8c6;
+  font: 400 19px/1.5 var(--display-cn);
+  letter-spacing: 2px;
+}
+.auth-dialog .system-button.primary:hover { background: #355c5a; }
+.auth-dialog .system-status { margin: 0; min-height: 0; }
+.auth-dialog .system-status:empty { margin-top: -18px; }
+.auth-dialog .system-tabs { gap: 22px; margin: 22px 0 18px; }
+.auth-dialog .system-tabs .system-button {
+  padding: 5px 0;
+  border: 0;
+  border-bottom: 1px solid #b99d77;
+  border-radius: 0;
+  background: transparent;
+  font: 15px/1.6 var(--sans);
+}
+.auth-dialog .system-tabs .system-button:hover { color: #a35937; border-color: var(--orange); }
+.auth-dialog > .system-note {
+  margin: 0;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  font: 12px/1.9 var(--sans);
+}
+@media(max-width:640px) {
+  .system-dialog.auth-dialog { padding: 122px 24px 24px; }
+  .auth-dialog::before { height: 100px; }
+  .auth-dialog .system-kicker { left: 24px; max-width: calc(100% - 96px); }
+  .auth-dialog::after { top: 62px; right: 28px; font-size: 36px; }
+  .auth-dialog h2 { font-size: 30px; margin-bottom: 22px; }
+  .auth-script { font-size: 21px; }
+}
 @media(max-width:640px) { .message-board { grid-template-columns: 1fr; } .account-dock { bottom: 12px; left: 10px; padding: 7px; gap: 5px; } .account-dock .system-button { padding: 7px 9px; font-size: 12px; } .account-name { max-width: 85px; } .system-dialog { padding: 24px 20px; } }
