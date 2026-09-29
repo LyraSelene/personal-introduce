@@ -35,12 +35,15 @@ create table if not exists public.visitor_messages (
   display_name text not null check (length(trim(display_name)) between 1 and 40),
   category text not null check (category in ('review','suggestion','question')),
   body text not null check (length(trim(body)) between 1 and 3000),
+  allow_public boolean not null default false,
   published boolean not null default false,
   reply text not null default '' check (length(reply) <= 5000),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   deleted_at timestamptz
 );
+alter table public.visitor_messages add column if not exists allow_public boolean not null default false;
+update public.visitor_messages set published = false where published and not allow_public;
 create index if not exists journal_date_idx on public.journal_posts (created_at desc, id desc);
 create index if not exists messages_author_date_idx on public.visitor_messages (author_id, created_at desc);
 create index if not exists messages_date_idx on public.visitor_messages (created_at desc, id desc);
@@ -77,7 +80,23 @@ begin
   return new;
 end;
 $$;
-revoke all on function private.touch_record(), private.guard_message() from public, anon, authenticated;
+-- Publication is a two-party decision: the sender must have granted permission.
+create or replace function private.guard_message_publication() returns trigger
+language plpgsql set search_path = '' as $$
+begin
+  if new.allow_public is distinct from old.allow_public then
+    raise exception 'Sender consent cannot be changed';
+  end if;
+  if new.body is distinct from old.body or new.display_name is distinct from old.display_name or new.category is distinct from old.category then
+    raise exception 'Sender content cannot be changed';
+  end if;
+  if new.published and not new.allow_public then
+    raise exception 'This message is private by sender choice';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function private.touch_record(), private.guard_message(), private.guard_message_publication() from public, anon, authenticated;
 drop trigger if exists touch_site_text on public.site_text;
 create trigger touch_site_text before update on public.site_text for each row execute function private.touch_record();
 drop trigger if exists touch_journal on public.journal_posts;
@@ -86,6 +105,8 @@ drop trigger if exists touch_message on public.visitor_messages;
 create trigger touch_message before update on public.visitor_messages for each row execute function private.touch_record();
 drop trigger if exists guard_message on public.visitor_messages;
 create trigger guard_message before insert on public.visitor_messages for each row execute function private.guard_message();
+drop trigger if exists guard_message_publication on public.visitor_messages;
+create trigger guard_message_publication before update on public.visitor_messages for each row execute function private.guard_message_publication();
 
 alter table public.site_text enable row level security;
 alter table public.journal_posts enable row level security;
@@ -118,9 +139,13 @@ create or replace function public.public_messages(page_offset integer default 0)
 returns table (id uuid, display_name text, category text, body text, reply text, created_at timestamptz)
 language sql stable security definer set search_path = '' as $$
   select id, display_name, category, body, reply, created_at from public.visitor_messages
-  where published and deleted_at is null order by created_at desc, id desc
+  where published and allow_public and deleted_at is null order by created_at desc, id desc
   limit 20 offset greatest(0, least(page_offset, 10000));
 $$;
 revoke all on function public.public_messages(integer) from public;
 grant execute on function public.public_messages(integer) to anon, authenticated;
+create or replace function public.message_consent_ready() returns boolean
+language sql stable set search_path = '' as $$ select true; $$;
+revoke all on function public.message_consent_ready() from public;
+grant execute on function public.message_consent_ready() to anon, authenticated;
 commit;

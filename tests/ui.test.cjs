@@ -47,7 +47,7 @@ function fakeClient(isOwner) {
   const calls=[];
   return {calls,
     auth:{onAuthStateChange(fn){cb=fn;setTimeout(()=>fn('INITIAL_SESSION',{user:{id:'me'},access_token:'one'}),0);},async signOut(){cb('SIGNED_OUT',null);return {data:{},error:null};}},
-    rpc(name){return Promise.resolve({data:name==='is_site_owner'?isOwner:[],error:null});},
+    rpc(name){return Promise.resolve({data:name==='is_site_owner'?isOwner:name==='message_consent_ready'?true:[],error:null});},
     from(table){let operation='select',payload;const chain={
       select(){return chain;},eq(){return chain;},is(){return chain;},order(){return chain;},range(){return chain;},
       update(value){operation='update';payload=value;return chain;},insert(value){operation='insert';payload=value;return chain;},upsert(value){operation='upsert';payload=value;return chain;},
@@ -56,12 +56,57 @@ function fakeClient(isOwner) {
     };return chain;}
   };
 }
-test('unconfigured website remains readable without pretend accounts or editable local notes',()=>{
+test('unconfigured website remains readable without pretend accounts or editable local notes',async()=>{
   const dom=page();const d=dom.window.document;
   assert.equal(d.querySelectorAll('#postcards .postcard').length,3);
   assert.equal(d.querySelector('#write-note').hidden,true);assert.equal(d.querySelector('#edit-note').hidden,true);
   d.querySelector('.account-dock button').click();assert.match(d.querySelector('.system-dialog').textContent,/准备中/);
+  d.querySelector('.system-dialog').close();
+  await tick();
   dom.window.close();
+});
+test('journal edits recover after close, warn before exit, survive failures and clear after cloud save',async()=>{
+  const client=fakeClient(true),dom=page(client),w=dom.window,d=w.document;await tick();await tick();
+  try{
+    d.querySelector('#write-note').click();
+    let editor=d.querySelector('.system-dialog'),form=editor.querySelector('form');
+    form.querySelector('input[type=text]').value='A draft';form.querySelector('textarea').value='Keep my words';
+    form.dispatchEvent(new w.Event('input',{bubbles:true}));
+    const key='lime-journal-draft-v1:me:new';
+    assert.equal(JSON.parse(w.localStorage.getItem(key)).values.body,'Keep my words');
+    let prompts=0;w.confirm=()=>{prompts++;return false;};
+    editor.querySelector('.dialog-x').click();assert.equal(editor.open,true);assert.equal(prompts,1);
+    const cancel=new w.Event('cancel',{cancelable:true});editor.dispatchEvent(cancel);assert.equal(cancel.defaultPrevented,true);assert.equal(editor.open,true);
+    w.confirm=()=>true;editor.querySelector('.dialog-x').click();
+    d.querySelector('#write-note').click();editor=d.querySelector('.system-dialog');
+    assert.ok(editor.querySelector('.draft-recovery'));
+    [...editor.querySelectorAll('button')].find(b=>b.textContent==='恢复暂存').click();
+    form=editor.querySelector('form');assert.equal(form.querySelector('textarea').value,'Keep my words');
+    const original=client.from;
+    client.from=()=>({upsert(){return this;},select(){return this;},single(){return Promise.resolve({error:{message:'network unavailable'}});}});
+    form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(editor.open,true);assert.ok(w.localStorage.getItem(key));assert.match(form.textContent,/网络连接失败/);
+    client.from=original;form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(w.localStorage.getItem(key),null);assert.equal(editor.isConnected,false);
+    assert.equal(client.calls.find(c=>c.operation==='upsert').payload.published,false);
+  }finally{await tick();dom.window.close();}
+});
+test('sender chooses private by default; missing migration blocks delivery',async()=>{
+  const client=fakeClient(false),dom=page(client),w=dom.window,d=w.document;await tick();await tick();
+  try{
+    const open=()=>[...d.querySelectorAll('.account-dock button')].find(b=>b.textContent==='写一封来信').click();
+    open();let form=d.querySelector('.system-dialog form');
+    form.querySelector('input').value='Visitor';form.querySelector('textarea').value='For you only';
+    form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(client.calls.find(c=>c.operation==='insert').payload.allow_public,false);
+    open();form=d.querySelector('.system-dialog form');form.querySelector('input').value='Visitor';form.querySelector('textarea').value='May share';
+    [...form.querySelectorAll('select')].at(-1).value='public';
+    const rpc=client.rpc;client.rpc=()=>Promise.resolve({error:{message:'missing function'}});
+    form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(client.calls.filter(c=>c.operation==='insert').length,1);assert.match(form.textContent,/正在升级/);
+    client.rpc=rpc;form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(client.calls.filter(c=>c.operation==='insert').at(-1).payload.allow_public,true);
+  }finally{await tick();dom.window.close();}
 });
 test('owner may edit a published entry without silently turning it into a draft; stored text is inert',async()=>{
   const client=fakeClient(true),dom=page(client),w=dom.window,d=w.document;await tick();await tick();
@@ -73,6 +118,9 @@ test('owner may edit a published entry without silently turning it into a draft;
   [...d.querySelectorAll('.system-dialog button')].find(b=>b.textContent==='编辑这篇').click();
   assert.equal(d.querySelector('.system-dialog input[type=checkbox]').checked,true);
   const form=d.querySelector('.system-dialog form');form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await tick();
+  assert.equal(client.calls.some(c=>c.operation==='update'),false);
+  assert.equal(d.querySelector('.journal-preview script'),null);
+  [...d.querySelectorAll('.journal-preview button')].find(b=>b.textContent==='确认公开').click();await tick();
   assert.equal(client.calls.find(c=>c.operation==='update').payload.published,true);
   // Open a private management dialog then sign out; the dialog and controls disappear.
   [...d.querySelectorAll('.account-dock button')].find(b=>b.textContent==='管理我的网站').click();
@@ -86,6 +134,7 @@ test('ordinary account receives submission controls but no owner tools',async()=
   assert.equal(d.querySelector('#write-note').hidden,true);
   [...d.querySelectorAll('.account-dock button')].find(b=>b.textContent==='写一封来信').click();
   assert.match(d.querySelector('.system-dialog').textContent,/默认私密/);
-  assert.equal(d.querySelector('.system-dialog input[type=checkbox]'),null);
+  assert.equal([...d.querySelectorAll('.system-dialog select')].at(-1).value,'private');
+  d.querySelector('.system-dialog').close();await tick();
   dom.window.close();
 });

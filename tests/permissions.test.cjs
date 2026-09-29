@@ -3,6 +3,22 @@ const assert = require('node:assert/strict');
 const { readFileSync } = require('node:fs');
 const { PGlite } = require('@electric-sql/pglite');
 
+test('existing public messages become private and consent migration can run twice',async()=>{
+  const db=new PGlite();
+  try{
+    await db.exec(`create role anon;create role authenticated;create schema private;
+      create table public.visitor_messages(id uuid primary key,display_name text,category text,body text,reply text,created_at timestamptz,published boolean,deleted_at timestamptz);
+      insert into public.visitor_messages values ('30000000-0000-4000-8000-000000000001','Original sender','review','Original body','Reply',now(),true,null);`);
+    const sql=readFileSync('supabase/migration-public-consent.sql','utf8');
+    await db.exec(sql);await db.exec(sql);
+    const row=(await db.query('select * from public.visitor_messages')).rows[0];
+    assert.equal(row.allow_public,false);assert.equal(row.published,false);assert.equal(row.body,'Original body');
+    assert.equal((await db.query('select * from public.public_messages()')).rows.length,0);
+    await assert.rejects(db.exec('update public.visitor_messages set allow_public=true,published=true'),/consent cannot be changed/);
+    await assert.rejects(db.exec('update public.visitor_messages set published=true'),/private by sender choice/);
+  }finally{await db.close();}
+});
+
 test('database enforces owner editing, private messages and publication boundaries', async () => {
   const db = new PGlite();
   const owner = '10000000-0000-4000-8000-000000000001';
@@ -36,10 +52,10 @@ test('database enforces owner editing, private messages and publication boundari
     await assert.rejects(db.exec("insert into public.journal_posts(title,body,category) values ('evil','no','life')"),/row-level security/);
     assert.equal((await rows(`update public.journal_posts set published=true where id='${post}' returning *`)).length,0);
     // A caller cannot forge author, publication, reply or creation date on insertion.
-    await db.exec(`insert into public.visitor_messages(id,author_id,display_name,category,body,published,reply,created_at,deleted_at)
-      values ('${msg}','${bob}','Alice','question','<script>alert(1)</script>',true,'fake','2000-01-01',now());`);
+    await db.exec(`insert into public.visitor_messages(id,author_id,display_name,category,body,allow_public,published,reply,created_at,deleted_at)
+      values ('${msg}','${bob}','Alice','question','<script>alert(1)</script>',false,true,'fake','2000-01-01',now());`);
     const own=(await rows('select * from public.visitor_messages'))[0];
-    assert.equal(own.author_id,alice);assert.equal(own.published,false);assert.equal(own.reply,'');assert.equal(own.deleted_at,null);
+    assert.equal(own.author_id,alice);assert.equal(own.allow_public,false);assert.equal(own.published,false);assert.equal(own.reply,'');assert.equal(own.deleted_at,null);
     assert.ok(new Date(own.created_at).getFullYear()>2020);
     await assert.rejects(db.exec("insert into public.visitor_messages(display_name,category,body) values ('A','review','too soon')"),/one minute/);
     assert.equal((await rows(`update public.visitor_messages set published=true where id='${msg}' returning *`)).length,0);
@@ -47,17 +63,21 @@ test('database enforces owner editing, private messages and publication boundari
     await as('authenticated',bob);
     assert.equal((await rows('select * from public.visitor_messages')).length,0);
     assert.equal((await rows('select * from public.public_messages()')).length,0);
+    await db.exec(`insert into public.visitor_messages(display_name,category,body,allow_public) values ('Bob','review','May share this',true);`);
     await as('authenticated',owner);
-    assert.equal((await rows('select * from public.visitor_messages')).length,1);
-    await db.exec(`update public.visitor_messages set published=true, reply='Thank you',author_id='${bob}',created_at='2000-01-01' where id='${msg}'; update public.journal_posts set published=true where id='${post}';`);
-    const guarded=(await rows('select * from public.visitor_messages'))[0];
-    assert.equal(guarded.author_id,alice);assert.equal(guarded.created_at.getTime(),own.created_at.getTime());
+    assert.equal((await rows('select * from public.visitor_messages')).length,2);
+    await assert.rejects(db.exec(`update public.visitor_messages set published=true where id='${msg}'`),/private by sender choice/);
+    await assert.rejects(db.exec(`update public.visitor_messages set allow_public=true where id='${msg}'`),/consent cannot be changed/);
+    await assert.rejects(db.exec(`update public.visitor_messages set body='replacement' where allow_public`),/content cannot be changed/);
+    await db.exec(`update public.visitor_messages set reply='Private reply',author_id='${bob}',created_at='2000-01-01' where id='${msg}'; update public.visitor_messages set published=true,reply='Thank you' where allow_public; update public.journal_posts set published=true where id='${post}';`);
+    const guarded=(await rows(`select * from public.visitor_messages where id='${msg}'`))[0];
+    assert.equal(guarded.author_id,alice);assert.equal(guarded.allow_public,false);assert.equal(guarded.created_at.getTime(),own.created_at.getTime());
     await as('anon');
     const publicRows=await rows('select * from public.public_messages()');
     assert.equal(publicRows.length,1);assert.equal(publicRows[0].reply,'Thank you');assert.equal('author_id' in publicRows[0],false);
     assert.equal((await rows('select * from public.journal_posts')).length,1);
     await as('authenticated',owner);
-    await db.exec(`update public.visitor_messages set published=false where id='${msg}'; update public.journal_posts set deleted_at=now() where id='${post}';`);
+    await db.exec(`update public.visitor_messages set published=false; update public.journal_posts set deleted_at=now() where id='${post}';`);
     await as('anon');
     assert.equal((await rows('select * from public.public_messages()')).length,0);
     assert.equal((await rows('select * from public.journal_posts')).length,0);

@@ -44,6 +44,10 @@
 .system-journal-body { padding: 5px 0; }
 .system-journal-body p { white-space: pre-wrap; overflow-wrap: anywhere; }
 .system-draft { color: #99783d; }
+.draft-recovery { padding:16px; background:#edf0df; border:1px dashed #a2b8a0; border-radius:8px; }
+.draft-status { margin:0; font-size:12px; }
+.journal-preview h3 { font-family:var(--display-cn); font-weight:400; overflow-wrap:anywhere; }
+.journal-preview .system-journal-body { padding:12px 0; }
 /* Account forms share the site's sky, handwritten headings and letter paper. */
 .system-dialog.auth-dialog {
   position: relative;
