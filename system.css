@@ -1,4 +1,19 @@
 [hidden] { display: none !important; }
+.unread-badge { display:inline-flex; margin-left:6px; min-width:20px; padding:0 5px; justify-content:center; border-radius:50%; background:#b96b43; color:#fffbee; font:12px/20px var(--sans); }
+.unread-badge:empty { display:none; }
+.journal-toolbar { flex-wrap:wrap; gap:16px; }
+.journal-search { display:flex; gap:8px; flex:1 1 100%; max-width:580px; }
+.journal-search input { flex:1; min-width:0; padding:11px 14px; border:1px solid #bbc9bf; border-radius:3px; background:#fffcf3; font:16px/1.5 var(--sans); color:var(--ink); }
+.journal-search input:focus-visible { outline:2px solid #bc8e58; outline-offset:2px; }
+.discussion-count { display:block; margin-top:6px; font:12px/1.6 var(--sans); color:#59776a; }
+.message-status, .read-state { display:inline-block; padding:3px 9px; background:#eee7d4; color:#846841; border-radius:3px; font:12px/1.7 var(--sans); }
+.message-status.replied { color:#3d7169; background:#e5ebdc; }
+.read-state { margin:8px 0; background:#e6eee7; }
+.message-card .message-body { padding:12px 15px; background:#f7f4e9; border-radius:3px 12px 12px; }
+.message-card .message-reply { margin-left:20px; border-radius:12px 3px 12px 12px; }
+.share-card { padding:24px; margin-bottom:20px; border:1px solid #d6d6bc; border-radius:3px 3px 18px; background:linear-gradient(160deg,#e8f1ee,#fff9e7 65%); overflow-wrap:anywhere; }
+.share-card h3 { font-family:var(--display-cn); font-weight:400; }
+.share-link { display:block; padding-top:14px; border-top:1px dashed #c5c9b8; font:12px/1.8 var(--sans); text-decoration:underline; }
 .account-dock { position: fixed; z-index: 65; bottom: 20px; left: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: calc(100vw - 100px); padding: 9px 12px; border: 1px solid #ffffffad; border-radius: 18px; background: #fff9ecef; box-shadow: 0 5px 28px #234a561a; backdrop-filter: blur(14px); font: 13px/1.5 system-ui,sans-serif; color: #345967; }
 .account-name { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .system-button { padding: 9px 14px; border: 1px solid #bbc9bf; border-radius: 9px; background: #faf7ed; color: #315866; font: 500 14px/1.4 system-ui,sans-serif; cursor: pointer; }

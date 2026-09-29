@@ -16,7 +16,7 @@
     page.className='chapter-page';page.dataset.chapter=id;page.tabIndex=-1;
     page.setAttribute('role','region');page.setAttribute('aria-label',label);
     section.before(page);page.append(section);
-    const link=document.createElement('a');link.href='#'+id;link.title=label;
+    const link=document.createElement('a');link.href='#'+id;link.title=label;link.setAttribute('aria-label',label);
     link.innerHTML=id==='home'?'<img src="assets/profile-portrait.jpg" alt="">':'<svg viewBox="0 0 24 24" aria-hidden="true">'+icons[id]+'</svg>';
     const caption=document.createElement('span');caption.className='chapter-label';caption.textContent=label;link.append(caption);nav.append(link);
     return page;
@@ -41,7 +41,7 @@
     pages.forEach((page,i)=>{page.hidden=i!==index;page.inert=i!==index;});
     document.documentElement.dataset.chapter=definitions[index][0];
     [...nav.children].forEach((link,i)=>{if(i===index)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
-    if(history)window.history.pushState(null,'','#'+definitions[index][0]);
+    if(history){const url=new URL(location.href);url.searchParams.delete('journal');url.hash=definitions[index][0];window.history.pushState(null,'',url);}
     if(previous!==-1) {
       const opening=document.querySelector('.arrival');if(opening)opening.hidden=true;
       const direction=index>previous?1:-1;

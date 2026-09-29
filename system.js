@@ -6,6 +6,7 @@
   const validConfig = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl || '') && !!config.supabaseKey && !config.supabaseKey.startsWith('sb_secret_');
   const db = validConfig && window.supabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseKey) : null;
   let user = null, owner = false, sessionVersion = 0, publicOffset = 0, journalOffset = 0;
+  let journalQuery = '', journalCategory = 'all', journalRequest = 0, routeRequest = 0;
   let pendingDiscussion=null;
   const categories = { self: '关于自己', life: '日常碎片', thoughts: '胡思乱想', review: '评价', suggestion: '建议', question: '提问' };
   const date = value => new Date(value).toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
@@ -20,6 +21,8 @@
     if (/Daily message/i.test(msg)) return '今天已经寄出 20 封来信，明天再来吧。';
     if (/rate limit/i.test(msg)) return '操作过于频繁，请稍后再试。';
     if (/fetch|network/i.test(msg)) return '网络连接失败，请稍后重试。内容尚未确认保存。';
+    if (/Withdrawn messages/i.test(msg)) return '这封信已被撤回，无法再回复或公开。请刷新列表。';
+    if (/Could not find the function|read_at.*does not exist/i.test(msg)) return '这项功能正在等待数据库升级，请稍后再试。';
     return `操作未完成：${msg}`;
   }
   function check(result) { if (result.error) throw result.error; return result.data; }
@@ -63,6 +66,9 @@
   }
   function submit(form,text) { const b = button(text,()=>{},'primary'); b.type='submit'; form.append(b); return b; }
   function requireBackend() { if (db) return true; const d=modal('来信系统正在准备中'); d.append(node('p','system-note','网站仍可自由浏览。账号与来信功能将在后台连接完成后开放。')); return false; }
+
+  const sharedJournalId = new URLSearchParams(location.search).get('journal');
+  if (sharedJournalId && (!location.hash || location.hash === '#home')) history.replaceState(null, '', `${location.pathname}${location.search}#journal`);
 
   // All editable values are plain text. Static decoration and markup stay local.
   const fields = new Map();
@@ -112,12 +118,23 @@
     if (!user) dock.append(button('登录 / 注册',()=>authDialog()));
     else {
       dock.append(node('span','account-name',owner?'天空的记录者':'已登录的访客'));
-      if(owner) dock.append(button('管理我的网站',adminDialog));
+      if(owner) {
+        const inbox=button('收到的来信',()=>messageInbox(true));
+        inbox.dataset.ownerInbox='true';
+        inbox.append(node('span','unread-badge')); dock.append(button('管理我的网站',adminDialog),inbox);
+      }
       else dock.append(button('我的来信',()=>messageInbox(false)));
       dock.append(button('退出',async()=>{ try { check(await db.auth.signOut()); } catch(e) {showToast(errorText(e));} }));
     }
     dock.append(button('写一封来信',()=>sendMessage()));
     q('#write-note').hidden=!owner; q('#edit-note').hidden=!owner;
+    if(owner) refreshUnreadCount();
+  }
+  async function refreshUnreadCount() {
+    if(!owner||!db)return;
+    const version=sessionVersion;
+    try { const count=Number(check(await db.rpc('unread_message_count'))||0); if(!owner||version!==sessionVersion)return;document.querySelectorAll('.unread-badge').forEach(b=>{b.textContent=count?String(count):'';b.hidden=!count;}); }
+    catch { document.querySelectorAll('.unread-badge').forEach(b=>{b.textContent='';b.hidden=true;}); }
   }
   function authDialog(mode='login') {
     if(!requireBackend())return;
@@ -166,6 +183,11 @@
   const recentList=node('div','recent-list'),recentStatus=status(recent);
   const recentRetry=button('重新加载',()=>loadRecent());recentRetry.hidden=true;
   recent.append(recentList,recentRetry);q('#home .hero-bottom').before(recent);
+  const search=node('form','journal-search');
+  const searchInput=node('input');searchInput.type='search';searchInput.name='q';searchInput.placeholder='搜索标题、正文或分类';searchInput.maxLength=120;searchInput.setAttribute('aria-label','搜索心事');
+  const searchButton=button('搜索',()=>{},'primary');searchButton.type='submit';search.append(searchInput,searchButton);q('.journal-toolbar').append(search);
+  search.addEventListener('submit',event=>{event.preventDefault();journalQuery=searchInput.value.trim();fetchJournal(true);});
+  document.querySelectorAll('[data-filter]').forEach(filter=>filter.addEventListener('click',()=>{if(!db)return;journalCategory=filter.dataset.filter;fetchJournal(true);}));
   async function loadRecent(){
     if(!db){recentStatus.textContent='新的心事，会慢慢写在这里。';return;}
     recentRetry.disabled=true;
@@ -181,10 +203,11 @@
   }
   function openJournal(post){
     const d=modal(post.title);d.append(node('p','message-meta',`${categories[post.category]} · 写于 ${date(post.created_at)}`));
+    d.dataset.readingJournal=post.id;
     const body=node('div','system-journal-body');body.append(node('p','',post.body));d.append(body);
     if(owner)d.append(button('编辑这篇',()=>{d.close();editJournal(post);}));
-    const discussion=node('section','journal-discussion');discussion.append(node('h3','','聊聊这一篇'),node('p','system-note','默认只有你和站主可见。允许公开且经站主发布的交流，会出现在这里。'));
-    discussion.append(button('写下读后感 / 提问',()=>sendMessage(post),'primary'));
+    const discussion=node('section','journal-discussion');const discussionTitle=node('h3','','聊聊这一篇');discussion.append(discussionTitle,node('p','system-note','默认只有你和站主可见。允许公开且经站主发布的交流，会出现在这里。'));
+    const share=button('分享这篇心事 ↗',()=>shareJournal(post));discussion.append(button('写下读后感 / 提问',()=>sendMessage(post),'primary'),share);
     const list=node('div','manage-list'),out=status(discussion);discussion.append(list);
     let offset=0;const more=button('查看更多交流',()=>load(false));discussion.append(more);d.append(discussion);
     async function load(reset=true){
@@ -195,35 +218,83 @@
         if(!d.isConnected)return;
         if(reset)list.replaceChildren();rows.forEach(row=>list.append(messageCard(row)));offset=start+rows.length;
         out.textContent=offset?'':'还没有公开的交流，你的感受也可以只写给我。';more.hidden=rows.length<20;more.textContent='查看更多交流';
+        if(reset) {
+          const countResult=await db.rpc('journal_discussion_counts',{journal_ids:[post.id]});
+          if(!countResult.error&&d.isConnected){const c=countResult.data?.[0];discussionTitle.textContent=`聊聊这一篇 · ${Number(c?.total||0)} 条公开交流`;}
+        }
       }catch{out.textContent='交流暂时无法加载，请稍后重试。';more.hidden=false;more.textContent='重新加载交流';}finally{more.disabled=false;}
     }load();
   }
-  const journalMore=button('再读一些心事',()=>fetchJournal(false));q('#postcards').after(journalMore);journalMore.hidden=true;
+  function shareJournal(post) {
+    if(!post.published||post.deleted_at){showToast('只有公开的心事可以分享。');return;}
+    const url=new URL(config.siteUrl||location.href);url.search='';url.searchParams.set('journal',post.id);url.hash='journal';
+    const excerpt=post.body.replace(/\s+/g,' ').slice(0,100)+(post.body.length>100?'…':'');
+    const text=`${post.title}\n${excerpt}\n${url.href}`;
+    const d=modal('把这封心事分享出去');const card=node('article','share-card');
+    card.append(node('span','section-script','A Letter for You'),node('p','message-meta',`${categories[post.category]} · ${date(post.created_at)}`),node('h3','',post.title),node('p','',excerpt));
+    const link=node('a','share-link',url.href);link.href=url.href;card.append(link);d.append(card);
+    const copy=field(d,'分享文字（可直接选中复制）','textarea',text);copy.readOnly=true;
+    const out=status(d),actions=node('div','system-actions');
+    actions.append(button('复制卡片文字',async()=>{try{await navigator.clipboard.writeText(text);out.textContent='标题、摘要和链接已复制。';}catch{copy.focus();copy.select();out.textContent='请复制已选中的分享文字。';}}));
+    if(navigator.share)actions.append(button('系统分享',async()=>{try{await navigator.share({title:post.title,text:excerpt,url:url.href});}catch(e){if(e.name!=='AbortError')out.textContent='分享暂不可用，可复制上方文字。';}}));
+    d.append(actions);
+  }
+  async function openSharedJournal() {
+    const id=new URLSearchParams(location.search).get('journal'),version=++routeRequest;
+    if(!db||!id||location.hash!=='#journal')return;
+    if([...document.querySelectorAll('[data-reading-journal]')].some(d=>d.dataset.readingJournal===id))return;
+    try {
+      const post=check(await db.from('journal_posts').select('id,title,body,category,published,created_at,updated_at').eq('id',id).eq('published',true).is('deleted_at',null).single());
+      if(version!==routeRequest)return;
+      if(!post)throw Error('文章不可用');
+      openJournal(post);
+    } catch {if(version===routeRequest){const d=modal('这封心事暂不可读');d.append(node('p','system-note','它可能已被收起、删除，或网络暂时不可用。你仍可以浏览其他公开心事。'));d.append(button('重新加载',()=>{d.close();openSharedJournal();}));}}
+  }
+  const journalMore=button('再读一些心事',()=>fetchJournal(journalMore.dataset.retry==='true'));q('#postcards').after(journalMore);journalMore.hidden=true;
   const journalStatus=node('p','system-status');journalMore.after(journalStatus);journalStatus.setAttribute('role','status');
+  async function queryJournals(offset) {
+    if(journalQuery) {
+      const result=await db.rpc('search_journals',{search_query:journalQuery,category_filter:journalCategory,page_offset:offset});
+      if(result.error&&result.error.code==='PGRST202')throw Error('搜索功能等待站主完成数据库升级。');
+      return check(result);
+    }
+    let req=db.from('journal_posts').select('id,title,body,category,published,created_at,updated_at').eq('published',true).is('deleted_at',null);
+    if(journalCategory!=='all')req=req.eq('category',journalCategory);
+    return check(await req.order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+11));
+  }
   async function fetchJournal(reset=true) {
     if(!db)return;
-    if(reset)loadRecent();
+    const request=++journalRequest;
+    if(reset)journalOffset=0;
+    if(reset&&!journalQuery&&journalCategory==='all')loadRecent();
     journalMore.disabled=true;
     try {
       const offset=reset?0:journalOffset;
-      const rows=check(await db.from('journal_posts').select('id,title,body,category,published,created_at,updated_at').eq('published',true).is('deleted_at',null).order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+11));
+      const rows=await queryJournals(offset);
+      if(request!==journalRequest)return;
       if(reset)q('#postcards').replaceChildren();
       rows.forEach(post=>{
-        const article=node('article','postcard');article.dataset.category=post.category;
+        const article=node('article','postcard');article.dataset.category=post.category;article.dataset.journalId=post.id;
         const open=node('button','post-open');open.type='button';
         const art=node('span',`card-art system-journal-art ${post.category}`);art.append(node('span','','✳'),node('small','','A LITTLE LETTER'));
         const meta=node('span','card-meta',categories[post.category]);
         const time=node('time','post-date',`写于 ${date(post.created_at)}`);time.dateTime=post.created_at;
-        open.append(art,meta,node('h3','',post.title),time,node('p','',post.body.slice(0,90)+(post.body.length>90?'…':'')),node('span','card-bottom','读这封信 ↗'));
+        const bottom=node('span','card-bottom','读这封信 ↗');const count=node('span','discussion-count');bottom.append(count);open.append(art,meta,node('h3','',post.title),time,node('p','',post.body.slice(0,90)+(post.body.length>90?'…':'')),bottom);
         open.addEventListener('click',()=>openJournal(post));
         article.append(open);q('#postcards').append(article);
       });
+      if(rows.length) loadDiscussionCounts(rows);
       journalOffset=offset+rows.length;journalMore.hidden=rows.length<12;
-      journalStatus.textContent=journalOffset?'':'还没有公开的心事，留一点空白给接下来的日子。';
-      const filter=q('[data-filter].selected');filter?.click();
+      journalStatus.textContent=journalOffset?`已显示 ${journalOffset} 篇${journalMore.hidden?'':'，可继续加载'}`:journalQuery?'没有找到匹配的心事，试试其他词吧。':'这个分类还没有公开的心事。';
+      journalMore.textContent='再读一些心事';q('#filter-status').textContent=journalStatus.textContent;
+      delete journalMore.dataset.retry;
+      document.querySelectorAll('[data-category]').forEach(card=>{card.hidden=journalCategory!=='all'&&card.dataset.category!==journalCategory;});
       q('[data-filter="all"] sup').textContent=String(journalOffset).padStart(2,'0');
-    }catch(e){journalStatus.textContent=`心事暂时无法同步；原有静态手记仅供浏览。${errorText(e)}`;journalMore.hidden=false;journalMore.textContent='重试加载心事';}
-    finally{journalMore.disabled=false;}
+    }catch(e){if(request!==journalRequest)return;journalStatus.textContent=errorText(e);journalMore.hidden=false;journalMore.dataset.retry=String(reset);journalMore.textContent='重试加载心事';}
+    finally{if(request===journalRequest)journalMore.disabled=false;}
+  }
+  async function loadDiscussionCounts(posts) {
+    try { const counts=check(await db.rpc('journal_discussion_counts',{journal_ids:posts.map(p=>p.id)})); const byId=new Map((counts||[]).map(c=>[c.journal_id,c]));document.querySelectorAll('[data-journal-id]').forEach(card=>{if(!posts.some(p=>p.id===card.dataset.journalId))return;const c=byId.get(card.dataset.journalId);card.querySelector('.discussion-count').textContent=`${Number(c?.total||0)} 条公开交流${Number(c?.replied)?` · ${c.replied} 已回复`:''}`;}); } catch { /* migration not installed yet */ }
   }
   function editJournal(post) {
     if(!owner)return;
@@ -320,7 +391,8 @@
   function adminDialog() {
     if(!owner)return;
     const d=modal('我的小小宇宙'),actions=node('div','system-actions');
-    actions.append(button('编辑网站文字',()=>{d.close();editText();}),button('写一篇心事',()=>{d.close();editJournal();}),button('管理心事 / 草稿',()=>{d.close();journalManager();}),button('收到的来信',()=>{d.close();messageInbox(true);}));
+    const inbox=button('收到的来信',()=>{d.close();messageInbox(true);});inbox.append(node('span','unread-badge'));
+    actions.append(button('编辑网站文字',()=>{d.close();editText();}),button('写一篇心事',()=>{d.close();editJournal();}),button('管理心事 / 草稿',()=>{d.close();journalManager();}),inbox);refreshUnreadCount();
     d.append(node('p','system-note','文字与心事保存后会同步到云端。草稿只有你可见；来信默认私密，仅获发信人授权的来信可以公开。'),actions);
     d.append(button('把原有三篇手记导入为草稿',async()=>{
       const f=node('div');d.append(f);const out=status(f);
@@ -366,8 +438,11 @@
     }catch(e){boardStatus.textContent=errorText(e);boardMore.hidden=false;boardMore.textContent='重试加载来信';}finally{boardMore.disabled=false;}
   }
   function messageCard(row) {
-    const card=node('article','message-card');card.append(node('span','message-meta',`${categories[row.category]} · ${date(row.created_at)}`),node('h3','',row.display_name),node('p','',row.body));
-    if(row.reply)card.append(node('p','message-reply',`我的回复\n${row.reply}`));return card;
+    const card=node('article','message-card');card.append(node('span','message-meta',`${categories[row.category]} · ${date(row.created_at)}`),node('h3','',row.display_name));
+    card.append(node('span',`message-status${row.reply?' replied':''}`,row.withdrawn_at?'已撤回':row.reply?'已回复':'等待回复'));
+    card.append(node('p','message-body',row.withdrawn_at?'这封来信已由发信人撤回。':row.body));
+    if(row.withdrawn_at)card.append(node('p','message-meta',`撤回于 ${date(row.withdrawn_at)}`));
+    else if(row.reply)card.append(node('p','message-reply',`站主的回复\n${row.reply}`));return card;
   }
   function sendMessage(post=null) {
     if(!requireBackend())return;if(!user){pendingDiscussion=post;authDialog();return;}
@@ -397,41 +472,53 @@
       await busy(d,out,async()=>{
         if(reset){offset=0;list.replaceChildren();}
         let req=db.from('visitor_messages').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+19);
-        if(!manage)req=req.eq('author_id',user.id).is('deleted_at',null);
+        if(!manage)req=req.eq('author_id',user.id);
         const rows=check(await req);rows.forEach(row=>{
-          const card=messageCard(row);card.append(node('p','message-meta',row.deleted_at?'已收起':row.published?'已公开':'私密来信'));
+           const card=messageCard(row);card.append(node('p','message-meta',row.withdrawn_at?'原文与回复已清除':row.deleted_at?'已收起':row.published?'已公开':'私密来信'));
+           if(manage&&!row.withdrawn_at)card.append(node('span','read-state',row.read_at?'已读':'未读'));
           if(row.journal_id){
             const related=button('查看关联心事',async()=>{
               try{const p=check(await db.from('journal_posts').select('*').eq('id',row.journal_id).single());if(!p||p.deleted_at)throw Error('这篇心事已不可浏览。');openJournal(p);}catch(e){showToast(errorText(e));}
             });card.prepend(related);
           }
           card.append(node('p','system-note',row.allow_public?'发信人允许公开':'仅给站主看 · 不允许公开'));
-          if(manage){const actions=node('div','system-actions');actions.append(button('回复 / 设置公开',()=>{d.close();editMessage(row);}),button(row.deleted_at?'恢复为私密':'收起这封信',async()=>{
-            await busy(card,out,async()=>{check(await db.from('visitor_messages').update({deleted_at:row.deleted_at?null:new Date().toISOString(),published:false}).eq('id',row.id).select('id').single());card.remove();out.textContent='状态已更新，重新打开列表可查看。';await loadPublicMessages();});
+          if(!manage&&!row.withdrawn_at){const actions=node('div','system-actions');actions.append(button('撤回这封信',()=>{
+            const confirm=modal('撤回这封信？');confirm.append(node('p','system-note','撤回后，网站会清除原文和回复，站主也无法恢复。已经被他人阅读或保存的内容无法收回。'));
+            const feedback=status(confirm);confirm.append(button('保留来信',()=>confirm.close()),button('确认撤回',()=>busy(confirm,feedback,async()=>{
+              check(await db.rpc('withdraw_message',{target_message_id:row.id}));confirm.close();row.withdrawn_at=new Date().toISOString();row.body='（来信已撤回）';row.reply='';card.replaceWith(messageCard(row));out.textContent='来信已撤回。';
+              await loadPublicMessages();document.querySelectorAll('[data-reading-journal]').forEach(dialog=>dialog.close());await fetchJournal();
+            }),'danger'));
+          },'danger'));card.append(actions);}
+          if(manage){const actions=node('div','system-actions');if(!row.read_at&&!row.withdrawn_at)actions.append(button('标为已读',async()=>{await busy(card,out,async()=>{const stamp=new Date().toISOString();check(await db.from('visitor_messages').update({read_at:stamp}).eq('id',row.id).select('id').single());row.read_at=stamp;card.querySelector('.read-state')?.replaceChildren(document.createTextNode('已读'));await refreshUnreadCount();});}));if(!row.withdrawn_at)actions.append(button('回复 / 设置公开',()=>{d.close();editMessage(row);}));if(!row.withdrawn_at)actions.append(button(row.deleted_at?'恢复为私密':'收起这封信',async()=>{
+            await busy(card,out,async()=>{check(await db.from('visitor_messages').update({deleted_at:row.deleted_at?null:new Date().toISOString(),published:false}).eq('id',row.id).select('id').single());card.remove();out.textContent='状态已更新，重新打开列表可查看。';await loadPublicMessages();refreshUnreadCount();});
           }));card.append(actions);}list.append(card);
-        });offset+=rows.length;more.hidden=rows.length<20;out.textContent=offset?'':'这里还没有来信。';
+        });offset+=rows.length;more.hidden=rows.length<20;out.textContent=offset?'':'这里还没有来信。';if(manage)refreshUnreadCount();
       });
     }load();
   }
   function editMessage(row) {
-    if(!owner)return;
+    if(!owner||row.withdrawn_at)return;
     const d=modal('回复这封来信');d.append(messageCard(row));const f=node('form','system-form');d.append(f);
     const reply=field(f,'我的回复','textarea',row.reply,5000);
     const publish=checkbox(f,'将来信、昵称和回复公开给所有访客',row.published);
     if(!row.allow_public){publish.checked=false;publish.disabled=true;f.append(node('p','system-note','发信人未授权公开，只能私密回复。旧来信也按未授权处理。'));}
     if(row.deleted_at){publish.disabled=true;f.append(node('p','system-note','这封信已收起。请先恢复，再选择公开。'));}
     submit(f,'保存回复与可见范围');const out=status(f);
-    f.addEventListener('submit',e=>{e.preventDefault();busy(f,out,async()=>{await consentReady();check(await db.from('visitor_messages').update({reply:reply.value.trim(),published:!!row.allow_public&&!row.deleted_at&&publish.checked}).eq('id',row.id).select('id').single());d.close();showToast('已保存。');await loadPublicMessages();});});
+    f.addEventListener('submit',e=>{e.preventDefault();busy(f,out,async()=>{await consentReady();check(await db.from('visitor_messages').update({reply:reply.value.trim(),published:!!row.allow_public&&!row.deleted_at&&publish.checked}).eq('id',row.id).select('id').single());d.close();showToast('已保存。');await loadPublicMessages();refreshUnreadCount();await fetchJournal();});});
   }
   async function syncSession(session) {
     const version=++sessionVersion;user=session?.user||null;owner=false;
     // Remove private content immediately when accounts change or sessions end.
     document.querySelectorAll('.system-dialog').forEach(d=>d.close());renderAccount();
     if(user)try{const result=check(await db.rpc('is_site_owner'));if(version!==sessionVersion)return;owner=result===true;}catch(e){showToast(errorText(e));}
-    if(version===sessionVersion)renderAccount();
+    if(version===sessionVersion){renderAccount();openSharedJournal();}
     if(version===sessionVersion&&user&&pendingDiscussion){const post=pendingDiscussion;pendingDiscussion=null;sendMessage(post);}
   }
   renderAccount();
+  window.addEventListener('popstate',openSharedJournal);
+  window.addEventListener('hashchange',openSharedJournal);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshUnreadCount();});
+  setInterval(()=>{if(!document.hidden)refreshUnreadCount();},60000);
   if(db){
     let currentToken;
     db.auth.onAuthStateChange((event,session)=>{

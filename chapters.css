@@ -42,3 +42,12 @@ html.chapter-mode, .chapter-mode body { height:100%; overflow:hidden; scroll-beh
 }
 @media(max-width:360px) { .chapter-nav { gap:1px; padding:6px 5px; } .chapter-nav a { width:40px; } .chapter-nav .chapter-label { font-size:11px; } }
 @media(prefers-reduced-motion:reduce) { .chapter-nav a { transition:none; } }
+@media(max-width:600px) {
+  .chapter-nav { gap:0; width:calc(100% - 24px); padding:6px; }
+  .chapter-nav a { width:auto; min-width:40px; min-height:56px; }
+  .chapter-nav .chapter-label { display:none; }
+  .chapter-nav a[aria-current="page"] { flex:1.8 1 0; }
+  .chapter-nav a[aria-current="page"] .chapter-label { display:block; font-size:12px; }
+  .chapter-mode .account-dock { gap:4px; max-width:90vw; }
+  .chapter-mode .account-dock .account-name { display:none; }
+}

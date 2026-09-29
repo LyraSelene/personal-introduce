@@ -27,8 +27,8 @@ test('chapter links, keyboard and history retain one visible chapter without int
   assert.equal(d.querySelectorAll('.chapter-nav [aria-current="page"]').length,1);
   dom.window.close();
 });
-function page(client) {
-  const dom = new JSDOM(readFileSync('index.html','utf8'), {url:'https://sixmonth12.github.io/personal-introduce/',runScripts:'outside-only',pretendToBeVisual:true});
+function page(client,url='https://sixmonth12.github.io/personal-introduce/') {
+  const dom = new JSDOM(readFileSync('index.html','utf8'), {url,runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;
   w.matchMedia=()=>({matches:false,addEventListener(){}});
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
@@ -155,4 +155,69 @@ test('ordinary account receives submission controls but no owner tools',async()=
   assert.equal([...d.querySelectorAll('.system-dialog select')].at(-1).value,'private');
   d.querySelector('.system-dialog').close();await tick();
   dom.window.close();
+});
+
+test('search runs against all public content and share card copies title, excerpt and direct URL safely',async()=>{
+  const client=fakeClient(false),rpc=client.rpc,requests=[];
+  const post={id:'shared-post',title:'Old <img src=x>',body:'A complete searchable memory',category:'life',published:true,created_at:'2026-01-01',updated_at:'2026-01-01'};
+  client.rpc=(name,args)=>{if(name==='search_journals'){requests.push(args);return Promise.resolve({data:args.search_query==='missing'?[]:[post]});}return rpc(name,args);};
+  const dom=page(client),w=dom.window,d=w.document;await tick();await tick();
+  try{
+    const form=d.querySelector('.journal-search');form.querySelector('input').value='memory';form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(requests[0].search_query,'memory');assert.equal(d.querySelectorAll('#postcards .postcard').length,1);
+    d.querySelector('#postcards .post-open').click();await tick();
+    [...d.querySelectorAll('.system-dialog button')].find(b=>b.textContent==='分享这篇心事 ↗').click();
+    const share=d.querySelector('.share-card');assert.ok(share);assert.equal(share.querySelector('img'),null);
+    const link=new URL(share.querySelector('a').href);assert.equal(link.searchParams.get('journal'),'shared-post');assert.equal(link.hash,'#journal');
+    assert.match(share.parentNode.querySelector('textarea').value,/Old <img src=x>\nA complete searchable memory/);
+    [...d.querySelectorAll('.system-dialog')].forEach(dialog=>dialog.close());
+    form.querySelector('input').value='missing';form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(d.querySelectorAll('#postcards .postcard').length,0);assert.match(d.querySelector('#filter-status').textContent,/没有找到/);
+  }finally{dom.window.close();}
+});
+
+test('direct article URL fetches an old article independently from the first page and keeps readable navigation labels',async()=>{
+  const client=fakeClient(false),original=client.from;let targeted=false;
+  client.from=table=>{const chain=original(table);if(table==='journal_posts'){
+    const eq=chain.eq;chain.eq=(key,value)=>{if(key==='id'&&value==='old-post')targeted=true;return eq(key,value);};
+    chain.single=()=>Promise.resolve({data:{id:'old-post',title:'An old letter',body:'A memory',category:'life',published:true,created_at:'2025-01-01'}});
+  }return chain;};
+  const dom=page(client,'https://sixmonth12.github.io/personal-introduce/?journal=old-post#journal'),w=dom.window,d=w.document;await tick();await tick();
+  try{
+    assert.equal(targeted,true);assert.equal(d.querySelector('[data-reading-journal]').dataset.readingJournal,'old-post');
+    assert.equal(d.querySelector('.chapter-nav [aria-current]').getAttribute('aria-label'),'心事');
+    d.querySelector('.system-dialog').close();d.querySelector('.chapter-nav a[href="#home"]').click();
+    assert.equal(new URL(w.location.href).searchParams.has('journal'),false);assert.equal(w.location.hash,'#home');await tick();
+  }finally{dom.window.close();}
+});
+
+test('withdraw confirmation retains text on failure, erases it on success and removes public cached copy',async()=>{
+  const client=fakeClient(false),original=client.from,rpc=client.rpc;
+  const letter={id:'letter-1',display_name:'Reader',body:'Private original',reply:'Private reply',category:'review',created_at:'2026-01-01',allow_public:true};
+  client.from=table=>{const chain=original(table);if(table==='visitor_messages')chain.then=(resolve,reject)=>Promise.resolve({data:[letter]}).then(resolve,reject);return chain;};
+  let fail=true;client.rpc=(name,args)=>name==='withdraw_message'?Promise.resolve(fail?{error:{message:'network unavailable'}}:{data:true}):rpc(name,args);
+  const dom=page(client),d=dom.window.document;await tick();await tick();
+  try{
+    [...d.querySelectorAll('.account-dock button')].find(b=>b.textContent==='我的来信').click();await tick();
+    [...d.querySelectorAll('.system-dialog button')].find(b=>b.textContent==='撤回这封信').click();
+    const confirm=[...d.querySelectorAll('.system-dialog')].at(-1);const action=[...confirm.querySelectorAll('button')].find(b=>b.textContent==='确认撤回');
+    action.click();await tick();assert.equal(confirm.open,true);assert.match(d.querySelector('.message-body').textContent,/Private original/);
+    fail=false;action.click();await tick();assert.equal(confirm.isConnected,false);assert.doesNotMatch(d.querySelector('.manage-list').textContent,/Private original|Private reply/);assert.match(d.querySelector('.manage-list').textContent,/已撤回/);
+  }finally{dom.window.close();}
+});
+
+test('owner sees unread count before opening inbox and marks a letter read without changing its reply status',async()=>{
+  const client=fakeClient(true),original=client.from,rpc=client.rpc;let unread=2;
+  const letter={id:'letter-1',display_name:'Reader',body:'Hello',reply:'',category:'review',created_at:'2026-01-01',allow_public:false};
+  client.rpc=(name,args)=>name==='unread_message_count'?Promise.resolve({data:unread}):rpc(name,args);
+  client.from=table=>{const chain=original(table);if(table==='visitor_messages'){
+    let updating=false;const update=chain.update;chain.update=value=>{updating=true;unread=1;return update(value);};
+    const then=chain.then;chain.then=(resolve,reject)=>updating?then(resolve,reject):Promise.resolve({data:[letter]}).then(resolve,reject);
+  }return chain;};
+  const dom=page(client),d=dom.window.document;await tick();await tick();
+  try{
+    assert.equal(d.querySelector('.unread-badge').textContent,'2');d.querySelector('[data-owner-inbox]').click();await tick();
+    [...d.querySelectorAll('.system-dialog button')].find(b=>b.textContent==='标为已读').click();await tick();
+    assert.equal(d.querySelector('.unread-badge').textContent,'1');assert.equal(d.querySelector('.read-state').textContent,'已读');assert.equal(d.querySelector('.message-status').textContent,'等待回复');
+  }finally{dom.window.close();}
 });
