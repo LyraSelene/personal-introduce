@@ -13,3 +13,49 @@
 @media(max-width:760px){.site-header{gap:10px;padding:18px 5%}.brand>span{font-size:24px}.brand small{font-size:9px}.brand>svg{width:30px;height:30px}.brand{gap:7px}.header-actions{gap:4px;padding:0}.sky-switch{padding:6px}.sky-label{display:none}.bgm-toggle{font-size:8px;letter-spacing:0;padding:7px}.site-header nav{margin-top:7px;padding-top:12px;gap:12px}.site-header nav a{font-size:10px;gap:0}.site-header nav a span{font-size:16px;line-height:1.7}.site-header nav a:after{bottom:-20px;font-size:15px}.hero-copy{left:9%;top:28%}.hero-copy h1{font-size:57px;line-height:1.2}.hero-line:nth-child(2){margin-left:20px}.hero-english{font-size:19px;gap:6px;margin-left:0}.hero-english:before,.hero-english:after{font-size:21px}.hero-curl{left:-28px;top:56px;width:31px;height:114px}.hero-copy p{font-size:11px}.hero .title-spark{right:3px;bottom:9px;width:22px;height:22px}.hero-copy .cream-button{font-size:12px;gap:18px}.sky-note{font-size:18px}.section-heading h2{font-size:29px}.about-copy h2{font-size:35px}.section-script{font-size:25px}.postcard h3{font-size:24px}.feeling-option strong{font-size:16px}.feeling-display h3{font-size:28px}.letter-paper h2{font-size:28px}.closing>span{font-size:22px}.self-writing,.summer-writing,.map-writing{font-size:29px}.hero-english{white-space:normal}}
 @media(max-width:360px){.hero-copy h1{font-size:49px}.brand small{font-size:8px}.site-header nav a span{font-size:14px}.header-actions{gap:3px}.brand>svg{width:25px}.hero-english{font-size:16px}}
 @media(prefers-reduced-motion:reduce){.hero-curl path{stroke-dashoffset:0}.hero-english{opacity:1}}
+
+/* Keep the intro and scroll hint in document flow, including when copy wraps. */
+.hero {
+  display: flex;
+  flex-direction: column;
+  height: auto;
+  min-height: max(760px, 94svh);
+  max-height: none;
+  padding: 200px 7.5% 64px;
+}
+.hero-copy {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  width: fit-content;
+  max-width: 100%;
+}
+.hero-bottom {
+  position: relative;
+  inset: auto;
+  flex: 0 0 auto;
+  width: 100%;
+  margin-top: auto;
+  padding-top: 48px;
+  gap: 24px;
+}
+@media (max-width: 1150px) {
+  .hero { padding-top: 220px; }
+}
+@media (max-width: 760px) {
+  .hero {
+    min-height: 850px;
+    padding: 220px 9% 52px;
+  }
+  .sky-note {
+    position: relative;
+    inset: auto;
+    flex: 0 0 auto;
+    align-self: flex-end;
+    margin: 36px 0 0;
+    max-width: 100%;
+  }
+  .hero-bottom { padding-top: 40px; }
+  .hero-copy .cream-button { max-width: 100%; }
+  .hero-copy .cream-button svg { flex-shrink: 0; }
+}
