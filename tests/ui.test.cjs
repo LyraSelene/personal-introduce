@@ -4,6 +4,29 @@ const { readFileSync } = require('node:fs');
 const { JSDOM } = require('jsdom');
 const { Script } = require('node:vm');
 const tick = () => new Promise(resolve => setTimeout(resolve,25));
+test('chapter links, keyboard and history retain one visible chapter without intercepting forms',async()=>{
+  const dom=page(),w=dom.window,d=w.document;
+  const active=()=>[...d.querySelectorAll('.chapter-page')].filter(p=>!p.hidden);
+  assert.equal(active().length,1);assert.equal(active()[0].dataset.chapter,'home');
+  assert.equal(d.querySelectorAll('.chapter-nav a').length,6);
+  d.querySelector('.cream-button').click();
+  assert.equal(active()[0].dataset.chapter,'about');assert.equal(w.location.hash,'#about');
+  const about=active()[0];about.scrollTop=120;
+  about.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+  assert.equal(active()[0].dataset.chapter,'feelings');assert.equal(about.inert,true);
+  w.history.back();await tick();
+  assert.equal(active()[0].dataset.chapter,'about');assert.equal(about.scrollTop,120);
+  const input=d.createElement('input');about.append(input);
+  input.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+  assert.equal(active()[0].dataset.chapter,'about');
+  const dialog=d.querySelector('dialog');dialog.open=true;
+  about.dispatchEvent(new w.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}));
+  assert.equal(active()[0].dataset.chapter,'about');dialog.open=false;
+  d.querySelector('.chapter-nav a[href="#messages"]').click();
+  assert.equal(active()[0].dataset.chapter,'messages');assert.ok(active()[0].querySelector('.footer'));
+  assert.equal(d.querySelectorAll('.chapter-nav [aria-current="page"]').length,1);
+  dom.window.close();
+});
 function page(client) {
   const dom = new JSDOM(readFileSync('index.html','utf8'), {url:'https://sixmonth12.github.io/personal-introduce/',runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;
@@ -14,6 +37,7 @@ function page(client) {
   new Script(readFileSync('script.js','utf8')).runInContext(dom.getInternalVMContext());
   if(client){w.LIME_CONFIG={supabaseUrl:'https://test.supabase.co',supabaseKey:'sb_publishable_test',siteUrl:w.location.href};w.supabase={createClient:()=>client};}
   new Script(readFileSync('system.js','utf8')).runInContext(dom.getInternalVMContext());
+  new Script(readFileSync('chapters.js','utf8')).runInContext(dom.getInternalVMContext());
   return dom;
 }
 function fakeClient(isOwner) {
