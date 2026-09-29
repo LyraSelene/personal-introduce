@@ -112,11 +112,13 @@ cd lime-personal-site
 
 ## 动画与可访问性
 
+首页开场使用提供的纸飞机角色插画：透明素材沿天空滑入、轻微抬头后飞出，约 2.8 秒结束；直接呈现首页背景，不再使用全屏信纸、旋转星形或加载线。滚动离开首页、按 Tab / Escape、暂停动效或设置减少动态效果时会跳过。实现位于 `arrival.css` 和 `arrival.js`，原始参考图保留在 `assets/stickers/arrival-plane-reference.jpg`。
+
 四个模块使用柔和的角色切入转场：关于我（纸飞机漂入）、心情（拍照轻晃）、手记（旅行漂浮）、访客信（送信轻跃）。角色以小幅动作在模块边缘浮现，约 2.3 秒后淡出，不使用横扫幕带，也不改变正文透明度。图片已生成透明 WebP，降低饱和度并与页面颜色混合；原始 JPG 仍保留在 `assets/stickers/`。快速切换会取消上一段，浮层不占排版空间、不拦截点击。暂停动效、系统减少动态效果或切到后台时立即停止。实现位于 `chapter-entrances.css` 和 `chapter-entrances.js`。
 
 标题与导航参考活动 UI，使用手写中文、卷曲英文、错落字形和星形卷线装饰；正文保留清晰的阅读字体。样式位于 `lettering.css`。本地托管的 Henny Penny 与 ZCOOL KuaiLe 字体遵循 SIL Open Font License，许可证位于 `assets/fonts/`。字体已按本站内容精简，添加新中文标题时需补充相应字形，否则会使用后备字体。并非游戏原版定制字形。
 
-- 开场短笺自动退场，按 `Tab` 或 `Escape` 可以跳过。
+- 纸飞机开场自动结束，按 `Tab` 或 `Escape` 可以跳过。
 - 标题与导航错落入场，内容进入视野时轻量浮现。
 - 使用原生 CSS、Web Animations API 和 IntersectionObserver，无第三方动画库。
 - 右下角可暂停动效，遵循系统的 `prefers-reduced-motion` 设置。

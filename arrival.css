@@ -1,0 +1,38 @@
+/* The opening lives inside the real sky, never on an opaque loading screen. */
+.hero > .arrival { position:absolute; inset:0; z-index:3; display:block; background:transparent; color:inherit; pointer-events:none; overflow:hidden; animation:none; }
+.hero > .arrival::before,.hero > .arrival::after { content:none; }
+.arrival-plane { position:absolute; top:clamp(150px,24%,270px); left:0; width:clamp(220px,32vw,440px); height:auto; opacity:0; transform-origin:65% 65%; filter:saturate(.88) drop-shadow(0 8px 12px #224e6c18); animation:paper-plane-arrival 2.65s .12s cubic-bezier(.22,.55,.38,1) both; will-change:transform,opacity; }
+@keyframes paper-plane-arrival {
+  0% { transform:translate(-105%,75px) rotate(-11deg); opacity:0; }
+  12% { opacity:1; }
+  42% { transform:translate(36vw,5px) rotate(3deg); opacity:1; }
+  63% { transform:translate(48vw,-9px) rotate(-2deg); opacity:1; }
+  80% { opacity:.96; }
+  100% { transform:translate(105vw,-95px) rotate(-9deg); opacity:0; }
+}
+/* The page copy arrives with the flight instead of waiting behind a curtain. */
+.hero .hello { animation-delay:.6s; animation-duration:.7s; }
+.hero .hero-line > span { animation-delay:.82s; animation-duration:.85s; }
+.hero .hero-line:nth-child(2) > span { animation-delay:.92s; }
+.hero .hero-line:nth-child(3) > span { animation-delay:1.02s; }
+.hero .hero-english { animation-delay:1.08s; animation-duration:.8s; }
+.hero .hero-copy > p { animation-delay:1.18s; animation-duration:.7s; }
+.hero .hero-copy > .cream-button { animation-delay:1.3s; animation-duration:.7s; }
+.site-header { animation-delay:.15s; animation-duration:.7s; }
+.hero .hero-picture { animation:none; }
+.hero .sky-note { animation-delay:1.45s; animation-duration:.8s; }
+.hero .hero-curl path { animation-delay:.7s; }
+@media (max-width:760px) {
+  .arrival-plane { top:175px; width:clamp(200px,58vw,330px); }
+  @keyframes paper-plane-arrival {
+    0% { transform:translate(-105%,65px) rotate(-10deg); opacity:0; }
+    12% { opacity:1; }
+    42% { transform:translate(16vw,5px) rotate(3deg); opacity:1; }
+    63% { transform:translate(30vw,-6px) rotate(-2deg); opacity:1; }
+    80% { opacity:.96; }
+    100% { transform:translate(110vw,-55px) rotate(-8deg); opacity:0; }
+  }
+}
+body.motion-paused .hero > .arrival { display:none; }
+body.arrival-skipped .hero *,body.arrival-skipped .site-header { animation-delay:0s !important; }
+@media (prefers-reduced-motion:reduce) { .hero > .arrival { display:none; } .arrival-plane { animation:none; } }

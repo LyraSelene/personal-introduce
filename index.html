@@ -11,9 +11,10 @@
   <link rel="stylesheet" href="lettering.css?v=hero-spacing-20260929">
   <link rel="stylesheet" href="chapter-entrances.css?v=soft-3">
   <link rel="stylesheet" href="system.css">
+  <link rel="stylesheet" href="arrival.css?v=plane-1">
+  <link rel="preload" as="image" href="assets/stickers/arrival-plane.webp">
 </head>
 <body>
-  <div class="arrival" aria-hidden="true"><div class="arrival-sun">✳</div><span>A LETTER FROM MY LITTLE WORLD</span><p>借一阵风，<br>和你见面。</p><div class="arrival-line"></div><small>酸橙来信 / HELLO, YOU.</small></div>
   <button id="motion-toggle" class="motion-toggle" aria-pressed="false">暂停动效</button>
   <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
     <symbol id="citrus" viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="currentColor"/><circle cx="50" cy="50" r="35" fill="none" stroke="var(--citrus-line,#fff9dd)" stroke-width="3"/><g fill="none" stroke="var(--citrus-line,#fff9dd)" stroke-width="3" stroke-linecap="round"><path d="M50 19v24m0 14v24M19 50h24m14 0h24M28 28l17 17m10 10 17 17M28 72l17-17m10-10 17-17"/></g><circle cx="50" cy="50" r="5" fill="var(--citrus-line,#fff9dd)"/></symbol>
@@ -28,6 +29,7 @@
   </header>
   <main id="main">
     <section class="hero" id="home" aria-labelledby="hero-title">
+      <div class="arrival" aria-hidden="true"><img class="arrival-plane" src="assets/stickers/arrival-plane.webp" width="820" height="651" alt="" fetchpriority="high"></div>
       <div class="hero-picture" role="img" aria-label="蓝天下，人物、冰淇淋与旅行物件一起漂浮的明日方舟主题插画"></div><div class="hero-shade"></div>
       <div class="hero-coordinate">A LITTLE PIECE OF SKY &nbsp; / &nbsp; EST. 2026</div>
       <div class="hero-copy"><div class="hello"><span></span> 很高兴，在这里遇见你。</div><h1 id="hero-title"><span class="hero-line"><span><span class="sr-only">关于我，</span><span aria-hidden="true"><span class="letter-char" style="--tilt:-7deg;--lift:0px">关</span><span class="letter-char" style="--tilt:4deg;--lift:-3px">于</span><span class="letter-char" style="--tilt:-3deg;--lift:2px">我</span><span class="letter-char" style="--tilt:6deg;--lift:-2px">，</span></span></span></span><span class="hero-line"><span><span class="sr-only">和我的</span><span aria-hidden="true"><span class="letter-char" style="--tilt:-7deg;--lift:0px">和</span><span class="letter-char" style="--tilt:4deg;--lift:-3px">我</span><span class="letter-char" style="--tilt:-3deg;--lift:2px">的</span></span></span></span><span class="hero-line"><span><span class="sr-only">小小宇宙。</span><span aria-hidden="true"><span class="letter-char" style="--tilt:-7deg;--lift:0px">小</span><span class="letter-char" style="--tilt:4deg;--lift:-3px">小</span><span class="letter-char" style="--tilt:-3deg;--lift:2px">宇</span><span class="letter-char" style="--tilt:6deg;--lift:-2px">宙</span><span class="letter-char" style="--tilt:-4deg;--lift:1px">。</span></span></span></span><svg class="title-spark"><use href="#spark"/></svg></h1><div class="hero-english" lang="en">My Little World</div><svg class="hero-curl" viewBox="0 0 60 150" aria-hidden="true"><path d="M45 10C15-5 8 25 24 27S50 9 43 37 4 66 13 87s39 8 31-8-27 5-11 27 9 29-9 34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="m9 45 4-9 4 9 9 4-9 3-4 9-4-9-9-3Z" fill="currentColor"/></svg><p>有一些认真，有一些胡思乱想。<br>还有好多，说不清却想记住的瞬间。</p><a class="cream-button" href="#about">从认识我开始 <svg><use href="#arrow"/></svg></a></div>
@@ -76,6 +78,7 @@
 
   <div class="toast" id="toast" role="status"></div>
   <script src="script.js"></script>
+  <script src="arrival.js?v=plane-1"></script>
   <script src="chapter-entrances.js?v=soft-3"></script>
   <script src="site-config.js"></script>
   <script src="assets/vendor/supabase.js"></script>
