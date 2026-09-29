@@ -58,6 +58,16 @@
 .system-journal-art.thoughts { background: linear-gradient(145deg,#e2ddc3,#bfd1c0); }
 .system-journal-body { padding: 5px 0; }
 .system-journal-body p { white-space: pre-wrap; overflow-wrap: anywhere; }
+.attached-image, .message-image, .journal-cover { display:block; width:100%; max-height:420px; object-fit:contain; margin:16px 0 4px; border-radius:3px; background:#e9eee5; }
+.journal-cover { height:185px; margin:0; object-fit:cover; }
+.card-art.has-image { display:block; padding:0; overflow:hidden; }
+.image-picker { display:grid; gap:8px; padding:12px; border:1px dashed #becbbb; border-radius:8px; }
+.image-picker legend { padding:0 4px; font:500 14px/1.5 var(--sans); }
+.image-picker input { max-width:100%; font:13px/1.5 var(--sans); }
+.image-picker-preview { max-width:100%; min-height:0; }
+.image-picker-preview:empty { display:none; }
+.image-picker-preview img { display:block; max-width:100%; max-height:260px; object-fit:contain; border-radius:4px; background:#edf1e9; }
+.image-picker .system-status { margin:0; }
 .system-draft { color: #99783d; }
 .recent-updates { position:relative; z-index:1; width:min(760px,100%); margin:38px 0 4px; padding:22px; border:1px solid #fff4d670; border-radius:3px 3px 18px 3px; background:#faf6e9f2; color:var(--ink); box-shadow:0 8px 28px #163e5015; }
 .recent-updates h2 { margin:0 0 15px; font:400 25px/1.5 var(--display-cn); }

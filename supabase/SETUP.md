@@ -31,6 +31,12 @@
 
 ## 4. 管理内容
 
+### 配图升级
+
+完成 community 升级后，在 SQL Editor 粘贴 `migration-images.sql` 全文并 Run。可重复运行，既有内容不变；执行 `select public.images_ready();` 应返回 `true`。刷新网站后即可在心事编辑器和来信表单选择图片。最新版 `schema.sql` 已包含此升级，新项目无需额外执行迁移。不要重跑较早的迁移覆盖新权限函数。
+
+每篇／封可附一张图片；私密图片随记录权限返回，站主不能替换访客已发出的图片，发信人撤回时清除图片。数据库约束限制格式与大小；前端把图片重新编码成静态 WebP/JPEG。仅支持 JPG、PNG、WebP，暂不支持 GIF、HEIC、SVG。
+
 ### 本次升级：撤回、未读、交流计数与搜索
 
 已有项目已完成前两次迁移后，进入 [本项目 SQL Editor](https://supabase.com/dashboard/project/vlwohcaffwlyupplzdki/sql/new)，新建查询，粘贴 `migration-community.sql` 的全部内容并点击 **Run**。运行成功后执行 `select public.community_ready();`，结果应为 `true`。然后刷新网站。

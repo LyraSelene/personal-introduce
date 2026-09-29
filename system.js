@@ -5,6 +5,17 @@
   const config = window.LIME_CONFIG || {};
   const validConfig = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl || '') && !!config.supabaseKey && !config.supabaseKey.startsWith('sb_secret_');
   const db = validConfig && window.supabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseKey) : null;
+  const images=window.LimeImages;
+  async function imagesReady() {
+    const result=await db.rpc('images_ready');
+    if(result.error||result.data!==true)throw Error('配图功能等待数据库升级，图片尚未上传。请保留内容，稍后重试。');
+  }
+  async function publicImageRows(name,args) {
+    const result=await db.rpc(name+'_images',args);
+    if(result.error?.code==='PGRST202')return check(await db.rpc(name,args));
+    return check(result);
+  }
+  function appendImage(parent,value,alt='配图'){const img=images.render(value,alt);if(img)parent.append(img);}
   let user = null, owner = false, sessionVersion = 0, publicOffset = 0, journalOffset = 0;
   let journalQuery = '', journalCategory = 'all', journalRequest = 0, routeRequest = 0;
   let pendingDiscussion=null;
@@ -192,7 +203,7 @@
     if(!db){recentStatus.textContent='新的心事，会慢慢写在这里。';return;}
     recentRetry.disabled=true;
     try{
-      const posts=check(await db.from('journal_posts').select('id,title,body,category,published,created_at,updated_at').eq('published',true).is('deleted_at',null).order('updated_at',{ascending:false}).order('id',{ascending:false}).range(0,2));
+      const posts=check(await db.from('journal_posts').select('*').eq('published',true).is('deleted_at',null).order('updated_at',{ascending:false}).order('id',{ascending:false}).range(0,2));
       recentList.replaceChildren();
       posts.forEach(post=>{
         const b=button('',()=>openJournal(post),'recent-entry');
@@ -204,7 +215,7 @@
   function openJournal(post){
     const d=modal(post.title);d.append(node('p','message-meta',`${categories[post.category]} · 写于 ${date(post.created_at)}`));
     d.dataset.readingJournal=post.id;
-    const body=node('div','system-journal-body');body.append(node('p','',post.body));d.append(body);
+    const body=node('div','system-journal-body');body.append(node('p','',post.body));appendImage(body,post.image_data,'心事配图');d.append(body);
     if(owner)d.append(button('编辑这篇',()=>{d.close();editJournal(post);}));
     const discussion=node('section','journal-discussion');const discussionTitle=node('h3','','聊聊这一篇');discussion.append(discussionTitle,node('p','system-note','默认只有你和站主可见。允许公开且经站主发布的交流，会出现在这里。'));
     const share=button('分享这篇心事 ↗',()=>shareJournal(post));discussion.append(button('写下读后感 / 提问',()=>sendMessage(post),'primary'),share);
@@ -214,7 +225,7 @@
       more.disabled=true;
       try{
         await consentReady();const start=reset?0:offset;
-        const rows=check(await db.rpc('public_journal_messages',{target_journal_id:post.id,page_offset:start}));
+        const rows=await publicImageRows('public_journal_messages',{target_journal_id:post.id,page_offset:start});
         if(!d.isConnected)return;
         if(reset)list.replaceChildren();rows.forEach(row=>list.append(messageCard(row)));offset=start+rows.length;
         out.textContent=offset?'':'还没有公开的交流，你的感受也可以只写给我。';more.hidden=rows.length<20;more.textContent='查看更多交流';
@@ -244,7 +255,7 @@
     if(!db||!id||location.hash!=='#journal')return;
     if([...document.querySelectorAll('[data-reading-journal]')].some(d=>d.dataset.readingJournal===id))return;
     try {
-      const post=check(await db.from('journal_posts').select('id,title,body,category,published,created_at,updated_at').eq('id',id).eq('published',true).is('deleted_at',null).single());
+      const post=check(await db.from('journal_posts').select('*').eq('id',id).eq('published',true).is('deleted_at',null).single());
       if(version!==routeRequest)return;
       if(!post)throw Error('文章不可用');
       openJournal(post);
@@ -254,11 +265,9 @@
   const journalStatus=node('p','system-status');journalMore.after(journalStatus);journalStatus.setAttribute('role','status');
   async function queryJournals(offset) {
     if(journalQuery) {
-      const result=await db.rpc('search_journals',{search_query:journalQuery,category_filter:journalCategory,page_offset:offset});
-      if(result.error&&result.error.code==='PGRST202')throw Error('搜索功能等待站主完成数据库升级。');
-      return check(result);
+      return publicImageRows('search_journals',{search_query:journalQuery,category_filter:journalCategory,page_offset:offset});
     }
-    let req=db.from('journal_posts').select('id,title,body,category,published,created_at,updated_at').eq('published',true).is('deleted_at',null);
+    let req=db.from('journal_posts').select('*').eq('published',true).is('deleted_at',null);
     if(journalCategory!=='all')req=req.eq('category',journalCategory);
     return check(await req.order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+11));
   }
@@ -277,6 +286,7 @@
         const article=node('article','postcard');article.dataset.category=post.category;article.dataset.journalId=post.id;
         const open=node('button','post-open');open.type='button';
         const art=node('span',`card-art system-journal-art ${post.category}`);art.append(node('span','','✳'),node('small','','A LITTLE LETTER'));
+        if(images.valid(post.image_data)){art.replaceChildren(images.render(post.image_data,'心事封面','journal-cover'));art.classList.add('has-image');}
         const meta=node('span','card-meta',categories[post.category]);
         const time=node('time','post-date',`写于 ${date(post.created_at)}`);time.dateTime=post.created_at;
         const bottom=node('span','card-bottom','读这封信 ↗');const count=node('span','discussion-count');bottom.append(count);open.append(art,meta,node('h3','',post.title),time,node('p','',post.body.slice(0,90)+(post.body.length>90?'…':'')),bottom);
@@ -303,10 +313,11 @@
     const title=field(f,'标题','text',post?.title||'',120);title.required=true;
     const category=select(f,'分类',{self:'关于自己',life:'日常碎片',thoughts:'胡思乱想'},post?.category||'self');
     const body=field(f,'今天想记住什么？','textarea',post?.body||'',30000);body.required=true;body.rows=10;
+    const picture=images.picker(f,post?.image_data,()=>persist());
     const published=checkbox(f,'公开给所有访客（不勾选则存为草稿）',post?.published||false);
     const draftStatus=node('p','system-note draft-status');draftStatus.setAttribute('role','status');f.append(draftStatus);
     const key=`lime-journal-draft-v1:${user.id}:${post?.id||'new'}`;
-    const snapshot=()=>({title:title.value,body:body.value,category:category.value,published:published.checked});
+    const snapshot=()=>({title:title.value,body:body.value,category:category.value,published:published.checked,image_data:picture.value});
     let baseline=JSON.stringify(snapshot()),saved=false,writing=false,pendingRecovery=false;
     let draftId=post?.id||crypto.randomUUID();
     const dirty=()=>JSON.stringify(snapshot())!==baseline;
@@ -331,6 +342,7 @@
         [...f.querySelectorAll('input,textarea,select')].forEach(el=>el.disabled=true);
         controls.append(button('恢复暂存',()=>{
           title.value=pending.values.title;body.value=pending.values.body;category.value=pending.values.category;published.checked=!!pending.values.published;
+          picture.set(pending.values.image_data===undefined?post?.image_data:pending.values.image_data);
           if(!post&&/^[0-9a-f-]{36}$/i.test(pending.id))draftId=pending.id;
           pendingRecovery=false;[...f.querySelectorAll('input,textarea,select')].forEach(el=>el.disabled=false);restore.remove();persist();
         }),button('丢弃本机暂存',()=>{
@@ -341,21 +353,25 @@
       }
     }catch{draftStatus.textContent='暂存无法读取；可以继续编辑并保存到云端。';}
     f.addEventListener('input',persist);f.addEventListener('change',persist);
-    const unload=event=>{if(dirty()&&!saved){persist();event.preventDefault();event.returnValue='';}};
+    const unload=event=>{if((dirty()||picture.pending)&&!saved){persist();event.preventDefault();event.returnValue='';}};
     const background=()=>{if(document.hidden)persist();};
     window.addEventListener('beforeunload',unload);document.addEventListener('visibilitychange',background);
     d.requestExit=()=>{
       if(writing){showToast('正在保存，请稍候再关闭。');return;}
+      if(picture.pending&&!window.confirm('图片还在处理中，关闭后需要重新选择。确定关闭？'))return;
       if(dirty()){
         const stored=persist();
         if(!window.confirm(stored?'内容尚未保存到云端，本机已暂存。确定关闭？':'暂存失败，关闭可能丢失修改。确定关闭？'))return;
       }d.close();
     };
-    d.addEventListener('close',()=>{persist();window.removeEventListener('beforeunload',unload);document.removeEventListener('visibilitychange',background);});
+    d.addEventListener('close',()=>{persist();picture.dispose();window.removeEventListener('beforeunload',unload);document.removeEventListener('visibilitychange',background);});
     submit(f,'保存心事');const out=status(f);
     function getPayload(){
+      picture.assertReady();
       if(!title.value.trim()||!body.value.trim())throw Error('标题和正文不能只有空白。');
-      return {title:title.value.trim(),body:body.value.trim(),category:category.value,published:published.checked};
+      const payload={title:title.value.trim(),body:body.value.trim(),category:category.value,published:published.checked};
+      if(picture.value||post?.image_data)payload.image_data=picture.value;
+      return payload;
     }
     async function save(payload,preview){
       const container=preview||f,output=preview?status(preview):out;
@@ -364,6 +380,7 @@
         writing=true;
         const inputs=[...f.querySelectorAll('input,textarea,select,button')];inputs.forEach(el=>el.disabled=true);
         try{
+          if(Object.hasOwn(payload,'image_data'))await imagesReady();
           // Reuse the draft ID after uncertain network failures to avoid duplicate new posts.
           let req=post?db.from('journal_posts').update(payload).eq('id',post.id).eq('updated_at',post.updated_at):db.from('journal_posts').upsert({id:draftId,...payload},{onConflict:'id'});
           const result=await req.select('id').single();
@@ -378,6 +395,7 @@
       const p=modal('发布前预览');p.classList.add('journal-preview');
       p.append(node('h3','',payload.title),node('p','message-meta',`${categories[payload.category]} · ${post?'写于 '+date(post.created_at):'首次写入日期将在保存时记录'}`));
       const content=node('div','system-journal-body');content.append(node('p','',payload.body));p.append(content);
+      appendImage(content,payload.image_data,'心事配图预览');
       p.append(node('p','system-note','确认后，这篇心事将对所有访客公开。'));
       const actions=node('div','system-actions');actions.append(button('返回编辑',()=>p.close()),button('确认公开',()=>save(payload,p),'primary'));p.append(actions);
       p.requestExit=()=>{if(!writing)p.close();};
@@ -432,7 +450,7 @@
   async function loadPublicMessages(reset=true) {
     if(!db){boardStatus.textContent='来信功能正在准备中。';return;}
     boardMore.disabled=true;
-    try {await consentReady();const offset=reset?0:publicOffset;const rows=check(await db.rpc('public_messages',{page_offset:offset}));
+    try {await consentReady();const offset=reset?0:publicOffset;const rows=await publicImageRows('public_messages',{page_offset:offset});
       if(reset)board.replaceChildren();rows.forEach(row=>board.append(messageCard(row)));
       publicOffset=offset+rows.length;boardMore.hidden=rows.length<20;boardStatus.textContent=publicOffset?'':'还没有公开的来信。私密的心意，会好好收下。';
     }catch(e){boardStatus.textContent=errorText(e);boardMore.hidden=false;boardMore.textContent='重试加载来信';}finally{boardMore.disabled=false;}
@@ -441,6 +459,7 @@
     const card=node('article','message-card');card.append(node('span','message-meta',`${categories[row.category]} · ${date(row.created_at)}`),node('h3','',row.display_name));
     card.append(node('span',`message-status${row.reply?' replied':''}`,row.withdrawn_at?'已撤回':row.reply?'已回复':'等待回复'));
     card.append(node('p','message-body',row.withdrawn_at?'这封来信已由发信人撤回。':row.body));
+    if(!row.withdrawn_at)appendImage(card,row.image_data,'来信配图');
     if(row.withdrawn_at)card.append(node('p','message-meta',`撤回于 ${date(row.withdrawn_at)}`));
     else if(row.reply)card.append(node('p','message-reply',`站主的回复\n${row.reply}`));return card;
   }
@@ -448,17 +467,22 @@
     if(!requireBackend())return;if(!user){pendingDiscussion=post;authDialog();return;}
     const d=modal('给我写一封来信'),f=node('form','system-form');d.append(f);
     if(post)f.append(node('p','discussion-context',`关于《${post.title}》`));
-    f.append(node('p','system-note','默认私密。选择允许公开后，站主才可公开昵称、原文和回复；允许公开不代表立即发布。'));
+    f.append(node('p','system-note','默认私密。选择允许公开后，站主才可公开昵称、原文、配图和回复；允许公开不代表立即发布。'));
     const name=field(f,'希望我怎么称呼你','text','',40);name.required=true;
     const category=select(f,'这封信是',{review:'评价',suggestion:'建议',question:'提问'},'review');
     const body=field(f,'想对我说的话','textarea','',3000);body.required=true;
-    const consent=select(f,'这封信的公开授权',{private:'仅给你看',public:'允许公开（含昵称、来信和回复）'},'private');
+    const picture=images.picker(f);d.addEventListener('close',()=>picture.dispose());
+    const consent=select(f,'这封信的公开授权',{private:'仅给你看',public:'允许公开（含昵称、来信、配图和回复）'},'private');
     submit(f,'寄出这封信');const out=status(f);
     f.addEventListener('submit',e=>{e.preventDefault();busy(f,out,async()=>{
+      picture.assertReady();
       if(!name.value.trim()||!body.value.trim())throw Error('昵称和来信不能只有空白。');
+      const chosenImage=picture.value;
+      if(chosenImage)await imagesReady();
       await consentReady();
       if(post){const ready=await db.rpc('public_journal_messages',{target_journal_id:post.id,page_offset:0});if(ready.error)throw Error('文章交流正在升级，内容尚未发送，请稍后重试。');}
       const payload={display_name:name.value.trim(),category:category.value,body:body.value.trim(),allow_public:consent.value==='public'};
+      if(chosenImage)payload.image_data=chosenImage;
       if(post)payload.journal_id=post.id;
       check(await db.from('visitor_messages').insert(payload).select('id').single());
       d.close();showToast('来信已私密送达。谢谢你愿意写给我。');
@@ -483,9 +507,9 @@
           }
           card.append(node('p','system-note',row.allow_public?'发信人允许公开':'仅给站主看 · 不允许公开'));
           if(!manage&&!row.withdrawn_at){const actions=node('div','system-actions');actions.append(button('撤回这封信',()=>{
-            const confirm=modal('撤回这封信？');confirm.append(node('p','system-note','撤回后，网站会清除原文和回复，站主也无法恢复。已经被他人阅读或保存的内容无法收回。'));
+            const confirm=modal('撤回这封信？');confirm.append(node('p','system-note','撤回后，网站会清除原文、配图和回复，站主也无法恢复。已经被他人阅读或保存的内容无法收回。'));
             const feedback=status(confirm);confirm.append(button('保留来信',()=>confirm.close()),button('确认撤回',()=>busy(confirm,feedback,async()=>{
-              check(await db.rpc('withdraw_message',{target_message_id:row.id}));confirm.close();row.withdrawn_at=new Date().toISOString();row.body='（来信已撤回）';row.reply='';card.replaceWith(messageCard(row));out.textContent='来信已撤回。';
+              check(await db.rpc('withdraw_message',{target_message_id:row.id}));confirm.close();row.withdrawn_at=new Date().toISOString();row.body='（来信已撤回）';row.image_data=null;row.reply='';card.replaceWith(messageCard(row));out.textContent='来信已撤回。';
               await loadPublicMessages();document.querySelectorAll('[data-reading-journal]').forEach(dialog=>dialog.close());await fetchJournal();
             }),'danger'));
           },'danger'));card.append(actions);}
@@ -500,7 +524,7 @@
     if(!owner||row.withdrawn_at)return;
     const d=modal('回复这封来信');d.append(messageCard(row));const f=node('form','system-form');d.append(f);
     const reply=field(f,'我的回复','textarea',row.reply,5000);
-    const publish=checkbox(f,'将来信、昵称和回复公开给所有访客',row.published);
+    const publish=checkbox(f,'将来信、昵称、配图和回复公开给所有访客',row.published);
     if(!row.allow_public){publish.checked=false;publish.disabled=true;f.append(node('p','system-note','发信人未授权公开，只能私密回复。旧来信也按未授权处理。'));}
     if(row.deleted_at){publish.disabled=true;f.append(node('p','system-note','这封信已收起。请先恢复，再选择公开。'));}
     submit(f,'保存回复与可见范围');const out=status(f);

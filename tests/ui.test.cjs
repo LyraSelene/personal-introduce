@@ -4,6 +4,37 @@ const { readFileSync } = require('node:fs');
 const { JSDOM } = require('jsdom');
 const { Script } = require('node:vm');
 const tick = () => new Promise(resolve => setTimeout(resolve,25));
+test('image draft recovers into preview, survives failed save, and can be removed',async()=>{
+  const client=fakeClient(true),dom=page(client),w=dom.window,d=w.document;await tick();await tick();
+  try{
+    const photo='data:image/png;base64,iVBORw0KGgo=';
+    w.localStorage.setItem('lime-journal-draft-v1:me:new',JSON.stringify({version:1,id:'20000000-0000-4000-8000-000000000001',savedAt:'2026-01-01',values:{title:'Photo',body:'Memory',category:'life',published:true,image_data:photo}}));
+    d.querySelector('#write-note').click();[...d.querySelectorAll('button')].find(b=>b.textContent==='恢复暂存').click();
+    let f=d.querySelector('.system-form');assert.equal(f.querySelector('.image-picker img').src,photo);
+    f.dispatchEvent(new w.Event('submit',{cancelable:true}));assert.equal(d.querySelector('.journal-preview img').src,photo);
+    const rpc=client.rpc;client.rpc=name=>name==='images_ready'?Promise.resolve({error:{code:'PGRST202'}}):rpc(name);
+    [...d.querySelectorAll('.journal-preview button')].find(b=>b.textContent==='确认公开').click();await tick();
+    assert.equal(client.calls.some(c=>c.operation==='upsert'),false);assert.match(d.querySelector('.journal-preview').textContent,/等待数据库升级/);assert.ok(w.localStorage.getItem('lime-journal-draft-v1:me:new'));
+    d.querySelector('.journal-preview').close();f.querySelector('.image-picker button').click();assert.equal(f.querySelector('.image-picker img'),null);
+    assert.equal(JSON.parse(w.localStorage.getItem('lime-journal-draft-v1:me:new')).values.image_data,null);
+  }finally{await tick();dom.window.close();}
+});
+
+test('image picker rejects unsafe formats and cancels an in-flight selection when removed',async()=>{
+  const dom=page(),w=dom.window,d=w.document;
+  try{
+    const box=d.createElement('div');d.body.append(box);const picker=w.LimeImages.picker(box);
+    assert.equal(w.LimeImages.render('data:image/svg+xml;base64,AAAA'),null);
+    const input=box.querySelector('input');Object.defineProperty(input,'files',{configurable:true,value:[new w.File(['x'],'bad.svg',{type:'image/svg+xml'})]});input.dispatchEvent(new w.Event('change'));await tick();
+    assert.throws(()=>picker.assertReady(),/处理失败/);box.querySelector('button').click();picker.assertReady();
+    let pendingImage;w.URL.createObjectURL=()=> 'blob:test';let revoked=false;w.URL.revokeObjectURL=()=>{revoked=true;};
+    w.Image=class{constructor(){pendingImage=this;}set src(v){}get naturalWidth(){return 10;}get naturalHeight(){return 10;}};
+    w.HTMLCanvasElement.prototype.getContext=()=>({drawImage(){}});w.HTMLCanvasElement.prototype.toDataURL=()=> 'data:image/webp;base64,AAAA';
+    Object.defineProperty(input,'files',{configurable:true,value:[new w.File(['x'],'ok.png',{type:'image/png'})]});input.dispatchEvent(new w.Event('change'));
+    assert.throws(()=>picker.assertReady(),/处理中/);box.querySelector('button').click();pendingImage.onload();await tick();
+    assert.equal(picker.value,null);assert.equal(box.querySelector('img'),null);assert.equal(revoked,true);
+  }finally{await tick();dom.window.close();}
+});
 test('chapter links, keyboard and history retain one visible chapter without intercepting forms',async()=>{
   const dom=page(),w=dom.window,d=w.document;
   const active=()=>[...d.querySelectorAll('.chapter-page')].filter(p=>!p.hidden);
@@ -35,6 +66,7 @@ function page(client,url='https://sixmonth12.github.io/personal-introduce/') {
   w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
   Object.defineProperty(w.HTMLElement.prototype,'innerText',{get(){return this.textContent;},set(t){this.textContent=t;}});
   new Script(readFileSync('script.js','utf8')).runInContext(dom.getInternalVMContext());
+  new Script(readFileSync('images.js','utf8')).runInContext(dom.getInternalVMContext());
   if(client){w.LIME_CONFIG={supabaseUrl:'https://test.supabase.co',supabaseKey:'sb_publishable_test',siteUrl:w.location.href};w.supabase={createClient:()=>client};}
   new Script(readFileSync('system.js','utf8')).runInContext(dom.getInternalVMContext());
   new Script(readFileSync('chapters.js','utf8')).runInContext(dom.getInternalVMContext());
@@ -47,7 +79,7 @@ function fakeClient(isOwner) {
   const calls=[];
   return {calls,
     auth:{onAuthStateChange(fn){cb=fn;setTimeout(()=>fn('INITIAL_SESSION',{user:{id:'me'},access_token:'one'}),0);},async signOut(){cb('SIGNED_OUT',null);return {data:{},error:null};}},
-    rpc(name){return Promise.resolve({data:name==='is_site_owner'?isOwner:name==='message_consent_ready'?true:[],error:null});},
+    rpc(name){if(name.endsWith('_images'))return Promise.resolve({error:{code:'PGRST202'}});return Promise.resolve({data:name==='is_site_owner'?isOwner:['message_consent_ready','images_ready'].includes(name)?true:[],error:null});},
     from(table){let operation='select',payload;const filters=[],orders=[];let range;const chain={
       select(){return chain;},eq(...args){filters.push(args);return chain;},is(...args){filters.push(args);return chain;},order(...args){orders.push(args);return chain;},range(...args){range=args;return chain;},
       update(value){operation='update';payload=value;return chain;},insert(value){operation='insert';payload=value;return chain;},upsert(value){operation='upsert';payload=value;return chain;},

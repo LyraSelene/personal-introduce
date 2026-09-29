@@ -50,5 +50,22 @@ test('withdrawal erases original text and replies; unread, counts and search res
     await as('authenticated',owner);await db.exec(`update public.journal_posts set published=false where id='${post}'`);
     await as('anon');assert.equal((await rows("select * from public.search_journals('酸橙')")).length,0);
     await db.exec('reset role');await db.exec(migration);
+    const imageMigration=readFileSync('supabase/migration-images.sql','utf8');await db.exec(imageMigration);await db.exec(imageMigration);
+    const photo='data:image/png;base64,iVBORw0KGgo=';
+    await as('authenticated',owner);
+    await db.exec(`update public.journal_posts set image_data='${photo}',published=true where id='${post}'`);
+    await db.exec(`insert into public.visitor_messages(display_name,category,body,image_data,allow_public) values ('Owner','review','A photo','${photo}',true)`);
+    const photoId=(await rows("select id from public.visitor_messages where display_name='Owner'"))[0].id;
+    await as('authenticated',bob);assert.equal((await rows(`select * from public.visitor_messages where id='${photoId}'`)).length,0);
+    await as('anon');assert.equal((await rows('select * from public.public_messages_images()')).length,0);
+    assert.equal((await rows("select * from public.search_journals_images('酸橙')"))[0].image_data,photo);
+    await as('authenticated',owner);
+    await assert.rejects(db.exec(`update public.visitor_messages set image_data=null where id='${photoId}'`),/content cannot be changed/);
+    await assert.rejects(db.exec(`update public.journal_posts set image_data='data:image/svg+xml;base64,AAAA' where id='${post}'`),/check constraint/);
+    await db.exec(`update public.visitor_messages set published=true where id='${photoId}'`);
+    await as('anon');assert.equal((await rows('select * from public.public_messages_images()'))[0].image_data,photo);
+    await as('authenticated',owner);await db.exec(`select public.withdraw_message('${photoId}')`);
+    assert.equal((await rows(`select image_data from public.visitor_messages where id='${photoId}'`))[0].image_data,null);
+    await as('anon');assert.equal((await rows('select * from public.public_messages_images()')).length,0);
   }finally{await db.close();}
 });
