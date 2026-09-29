@@ -16,26 +16,28 @@ html.chapter-mode, .chapter-mode body { height:100%; overflow:hidden; scroll-beh
 .chapter-mode .hero-coordinate { top:150px; }
 .chapter-mode .motion-toggle { z-index:22; bottom:28px; }
 .chapter-mode .toast { z-index:80; bottom:112px; }
-.chapter-nav { position:fixed; bottom:max(20px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:20; display:flex; align-items:center; gap:10px; padding:10px 16px; max-width:calc(100vw - 32px); border:1px solid #ffffff; border-radius:24px; background:#f9faf5e8; backdrop-filter:blur(20px); box-shadow:0 8px 32px #294a4e16; }
-.chapter-nav a { position:relative; width:58px; height:58px; flex-shrink:0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border-radius:50%; color:#839393; transition:color .18s,background .18s,box-shadow .18s; }
-.chapter-nav svg { width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
-.chapter-nav img { width:30px; height:30px; object-fit:cover; border-radius:50%; }
-.chapter-nav .chapter-label { font:10px/1.3 var(--sans); white-space:nowrap; }
-.chapter-nav a:hover { color:#317f78; background:#e7eee5; }
-.chapter-nav a[aria-current="page"] { color:#269d91; background:#fffefa; box-shadow:0 0 0 2px #fffefa,0 0 0 4px #466560; }
-.chapter-nav a:focus-visible { outline-offset:7px; }
+.chapter-nav { position:fixed; bottom:max(20px,env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); z-index:20; display:flex; align-items:center; justify-content:space-between; gap:7px; width:min(560px,calc(100vw - 32px)); min-height:78px; padding:7px 13px; border:1px solid #ded9c7; border-radius:6px 6px 20px 6px; background:linear-gradient(110deg,#fffcf2f5,#f2efdfef); backdrop-filter:blur(16px); box-shadow:0 8px 28px #294a4e14, inset 0 1px #ffffffb8; }
+.chapter-nav a { position:relative; width:76px; height:64px; flex:1 1 0; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; border-radius:18px; color:#7d9090; transition:color .2s,background .2s,transform .2s; }
+.chapter-nav svg { width:30px; height:30px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.chapter-nav img { width:35px; height:35px; object-fit:cover; border-radius:50%; border:2px solid #fffdf5; box-shadow:0 1px 3px #31565a24; }
+.chapter-nav .chapter-label { font:400 14px/1.3 var(--display-cn); letter-spacing:.5px; white-space:nowrap; }
+.chapter-nav a:hover { color:#317f78; background:#e7eee5a8; transform:translateY(-2px); }
+.chapter-nav a[aria-current="page"] { color:#3d7169; background:#e3e9d9; border-radius:4px 4px 12px 4px; transform:translateY(-2px); }
+.chapter-nav a[aria-current="page"]::after { content:''; position:absolute; width:22px; height:3px; left:calc(50% - 11px); bottom:2px; background:var(--orange); border-radius:50%; transform:rotate(-4deg); pointer-events:none; }
+.chapter-nav a:focus-visible { outline:2px dashed #ae754e; outline-offset:2px; }
 @media(max-width:760px) {
   .chapter-page { padding-top:142px; padding-bottom:120px; scrollbar-gutter:auto; }
   .chapter-mode .hero { padding:160px 9% 48px; }
   .chapter-mode .site-header { padding:15px 5%; min-height:76px; flex-wrap:nowrap; gap:10px; }
   .chapter-mode .account-dock { top:82px; max-width:90vw; }
   .chapter-mode .brand small { font-size:8px; }
-  .chapter-nav { gap:5px; padding:10px 13px; bottom:max(14px,env(safe-area-inset-bottom)); border-radius:22px; }
-  .chapter-nav a { width:44px; height:49px; }
-  .chapter-nav svg { width:23px; height:23px; }
-  .chapter-nav .chapter-label { font-size:9px; }
+  .chapter-nav { gap:3px; min-height:70px; padding:6px 8px; bottom:max(14px,env(safe-area-inset-bottom)); border-radius:6px 6px 16px 6px; }
+  .chapter-nav a { width:44px; height:56px; }
+  .chapter-nav svg { width:24px; height:24px; }
+  .chapter-nav img { width:29px; height:29px; }
+  .chapter-nav .chapter-label { font-size:12px; }
   .chapter-mode .motion-toggle { bottom:98px; right:12px; }
   .chapter-mode .toast { bottom:145px; }
 }
-@media(max-width:360px) { .chapter-nav { gap:2px; padding:8px 9px; } .chapter-nav a { width:42px; } }
+@media(max-width:360px) { .chapter-nav { gap:1px; padding:6px 5px; } .chapter-nav a { width:40px; } .chapter-nav .chapter-label { font-size:11px; } }
 @media(prefers-reduced-motion:reduce) { .chapter-nav a { transition:none; } }
