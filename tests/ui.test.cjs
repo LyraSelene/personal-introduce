@@ -58,6 +58,27 @@ test('chapter links, keyboard and history retain one visible chapter without int
   assert.equal(d.querySelectorAll('.chapter-nav [aria-current="page"]').length,1);
   dom.window.close();
 });
+test('journal view switching preserves article nodes and opens the same full reader',async()=>{
+  const client=fakeClient(false),dom=page(client),w=dom.window,d=w.document;await tick();await tick();
+  try {
+    const cards=d.querySelector('#postcards'),article=cards.querySelector('.postcard');
+    const switches=[...d.querySelectorAll('.journal-view-switch button')];
+    assert.equal(cards.dataset.view,'cards');
+    const calls=client.calls.length;
+    switches.find(b=>b.textContent==='列表').click();
+    assert.equal(cards.dataset.view,'list');
+    assert.equal(cards.querySelector('.postcard'),article);
+    assert.equal(client.calls.length,calls);
+    assert.equal(w.localStorage.getItem('lime-journal-view-v1'),'list');
+    assert.equal(switches.filter(b=>b.getAttribute('aria-pressed')==='true').length,1);
+    article.querySelector('.post-open').click();await tick();
+    assert.ok(d.querySelector('.journal-reader[data-reading-journal="post-1"]'));
+    assert.equal(d.querySelector('.journal-reader .system-journal-body p').textContent,'<script>evil()</script>');
+    d.querySelector('.journal-reader .dialog-x').click();
+    switches.find(b=>b.textContent==='卡片').click();
+    assert.equal(cards.dataset.view,'cards');assert.equal(cards.querySelector('.postcard'),article);
+  } finally { await tick();w.close(); }
+});
 function page(client,url='https://sixmonth12.github.io/personal-introduce/') {
   const dom = new JSDOM(readFileSync('index.html','utf8'), {url,runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;

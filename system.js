@@ -200,6 +200,22 @@
   const searchButton=button('搜索',()=>{},'primary');searchButton.type='submit';search.append(searchInput,searchButton);q('.journal-toolbar').append(search);
   search.addEventListener('submit',event=>{event.preventDefault();journalQuery=searchInput.value.trim();fetchJournal(true);});
   document.querySelectorAll('[data-filter]').forEach(filter=>filter.addEventListener('click',()=>{if(!db)return;journalCategory=filter.dataset.filter;fetchJournal(true);}));
+  const viewControls=node('div','journal-view-switch');
+  viewControls.setAttribute('role','group');viewControls.setAttribute('aria-label','心事展示方式');
+  const journalCards=q('#postcards'),viewButtons=new Map();
+  function setJournalView(view,persist=false){
+    const selected=view==='list'?'list':'cards';
+    journalCards.dataset.view=selected;
+    viewButtons.forEach((b,key)=>b.setAttribute('aria-pressed',String(key===selected)));
+    if(persist){try{localStorage.setItem('lime-journal-view-v1',selected);}catch{/* Browsing still works without local storage. */}}
+  }
+  [['cards','卡片'],['list','列表']].forEach(([key,label])=>{
+    const b=button(label,()=>setJournalView(key,true));b.setAttribute('aria-controls','postcards');
+    viewButtons.set(key,b);viewControls.append(b);
+  });
+  q('.journal-toolbar').insertBefore(viewControls,search);
+  let savedView='cards';try{savedView=localStorage.getItem('lime-journal-view-v1');}catch{/* Default to cards. */}
+  setJournalView(savedView);
   async function loadRecent(){
     if(!db){recentStatus.textContent='新的心事，会慢慢写在这里。';return;}
     recentRetry.disabled=true;
@@ -215,6 +231,7 @@
   }
   function openJournal(post){
     const d=modal(post.title);d.append(node('p','message-meta',`${categories[post.category]} · 写于 ${date(post.created_at)}`));
+    d.classList.add('journal-reader');
     d.dataset.readingJournal=post.id;
     const body=node('div','system-journal-body');body.append(node('p','',post.body));appendImage(body,post.image_data,'心事配图');d.append(body);
     if(owner)d.append(button('编辑这篇',()=>{d.close();editJournal(post);}));
