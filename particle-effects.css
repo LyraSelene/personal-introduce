@@ -1,0 +1,17 @@
+/* Gentle sunlit dust: decorative only, with no layout or input impact. */
+.particle-layer { position:absolute; inset:0; z-index:1; overflow:hidden; pointer-events:none; mask-image:linear-gradient(90deg,transparent 0%,#0002 34%,#000 65%); }
+.particle { position:absolute; left:var(--particle-x); top:var(--particle-y); width:var(--particle-size); height:var(--particle-size); border-radius:50%; background:#fff8d9; opacity:.34; filter:blur(.2px); box-shadow:0 0 9px #fff4b866; animation:particle-drift 9s var(--particle-delay) ease-in-out infinite; }
+.particle:nth-child(3n) { background:#dff0c3; opacity:.28; }
+.particle:nth-child(4n) { animation-duration:12s; }
+.particle:nth-child(5n) { opacity:.2; filter:blur(1px); }
+.particle:nth-child(7n) { width:calc(var(--particle-size) + 2px); height:calc(var(--particle-size) + 2px); }
+@keyframes particle-drift {
+  0%,100% { transform:translate3d(0,0,0) scale(.75); opacity:.12; }
+  35% { transform:translate3d(10px,-14px,0) scale(1); opacity:.42; }
+  70% { transform:translate3d(-7px,-27px,0) scale(.9); opacity:.25; }
+}
+.chapter-mode .particle-layer { z-index:1; }
+.chapter-mode .hero-copy,.chapter-mode .hero-bottom { z-index:2; }
+body.motion-paused .particle-layer { display:none; }
+@media(max-width:760px) { .particle:nth-child(n+16) { display:none; } }
+@media(prefers-reduced-motion:reduce) { .particle-layer { display:none; } }

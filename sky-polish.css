@@ -1,0 +1,111 @@
+/* Small refinements to the existing sky, postcards and chapter navigation. */
+.hero .hero-copy { max-width:min(640px,100%); }
+.hero .hello { letter-spacing:2px; color:#fff8e5; }
+.hero .hello > span { width:28px; background:#f3d49d; }
+.hero .hero-copy h1 {
+  text-shadow:0 2px 0 #355f7430,0 6px 24px #184d6b38;
+  margin-top:24px;margin-bottom:20px;
+}
+.hero .hero-copy > p {
+  font-size:14px;line-height:2;letter-spacing:.7px;
+  color:#fffbed;opacity:1;text-shadow:0 1px 9px #204d6970;
+}
+.hero .hero-english { font-size:25px;opacity:.9; }
+.hero .hero-copy .cream-button {
+  border:1px solid #fff6d5a8;border-radius:3px 3px 14px 3px;
+  background:#fffae9ed;color:#355d65;padding:11px 19px;gap:24px;
+  box-shadow:0 5px 16px #1b4c6520;backdrop-filter:blur(8px);
+  transition:background .2s,transform .2s;
+}
+.hero .hero-copy .cream-button::before { color:#b18a45;font-size:21px; }
+.hero .hero-copy .cream-button:hover { background:#fffdf5;transform:translateY(-2px); }
+.hero .sky-note { font-size:20px;line-height:1.9;opacity:.9; }
+.hero .drifting-doodles span:nth-child(2),
+.hero .drifting-doodles span:nth-child(3),
+.hero .drifting-doodles span:nth-child(5) { display:none; }
+.hero .drifting-doodles span { opacity:.45;animation-duration:14s; }
+.hero .title-spark { animation:none;transform:rotate(12deg); }
+
+/* Uniform postcard geometry; only the first postcard keeps a slight tilt. */
+#postcards:not([data-view="list"]) { align-items:stretch;gap:26px; }
+#postcards:not([data-view="list"]) .postcard {
+  display:flex;min-width:0;margin:0;padding:12px 12px 0;
+  background:linear-gradient(135deg,#fffef8,#fcf9ee);
+  border:1px solid #e0e1d0;border-radius:4px 4px 17px 4px;
+  box-shadow:0 6px 18px #4c624910;transform:none;
+  transition:transform .22s,box-shadow .22s;
+}
+#postcards:not([data-view="list"]) .postcard:first-child { transform:rotate(-.6deg); }
+#postcards:not([data-view="list"]) .post-open {
+  display:flex;flex-direction:column;align-items:stretch;min-width:0;
+  border-radius:3px;text-align:left;
+}
+#postcards:not([data-view="list"]) .card-art {
+  flex:none;width:100%;height:auto;aspect-ratio:3 / 2;
+  border-radius:3px 3px 10px 3px;overflow:hidden;
+}
+#postcards:not([data-view="list"]) .journal-cover { height:100%;width:100%;object-fit:cover;margin:0; }
+#postcards:not([data-view="list"]) .card-meta {
+  margin:19px 10px 9px;font:11px/1.6 var(--sans);letter-spacing:.6px;color:#677c66;
+}
+#postcards:not([data-view="list"]) h3 {
+  margin:0 10px 12px;font:400 24px/1.5 var(--display-cn);
+  min-height:3em;color:#355b50;overflow-wrap:anywhere;
+}
+#postcards:not([data-view="list"]) .post-date {
+  margin:0 10px 12px;color:#687a68;font:11px/1.7 var(--sans);
+  font-variant-numeric:tabular-nums;
+}
+#postcards:not([data-view="list"]) .post-open > p {
+  margin:0 10px 20px;font:13px/1.9 var(--sans);color:#627565;
+  display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+  overflow:hidden;overflow-wrap:anywhere;
+}
+#postcards:not([data-view="list"]) .card-bottom {
+  margin:auto 10px 0;padding:14px 0;min-height:53px;
+  border-top:1px solid #dde3d2;gap:8px;flex-wrap:wrap;
+  color:#597660;font:11px/1.6 var(--sans);letter-spacing:.5px;
+}
+#postcards:not([data-view="list"]) .card-bottom .discussion-count { font:11px/1.6 var(--sans);margin:0;color:#637e69; }
+#postcards:not([data-view="list"]) .post-open:focus-visible { outline:3px solid #658e73;outline-offset:5px; }
+@media(hover:hover) {
+  #postcards:not([data-view="list"]) .postcard:hover { transform:translateY(-3px);box-shadow:0 12px 24px #4c624919; }
+}
+
+/* A translucent cream dock with one calm lime selection. */
+.chapter-nav {
+  background:linear-gradient(120deg,#fffdf1f2,#f0f3e6ed);
+  border:1px solid #fffdf3d9;border-radius:20px;
+  box-shadow:0 8px 26px #2d534c15,inset 0 1px #fff;
+  backdrop-filter:blur(18px);gap:5px;
+}
+.chapter-nav a { border-radius:14px;color:#647a71; }
+.chapter-nav svg { width:27px;height:27px;stroke-width:1.6; }
+.chapter-nav .chapter-label { font:12px/1.5 var(--sans);letter-spacing:0; }
+.chapter-nav a[aria-current="page"] {
+  background:#e1e9cc;color:#375f4c;border-radius:14px;transform:none;
+  box-shadow:inset 0 1px #ffffffad;
+}
+.chapter-nav a[aria-current="page"]::after {
+  width:14px;height:2px;left:calc(50% - 7px);bottom:3px;
+  background:#92a665;border-radius:3px;transform:none;
+}
+.chapter-nav a:hover { background:#e8edde;color:#375f4c;transform:none; }
+.chapter-nav a[aria-current="page"]:hover { background:#dbe5c4; }
+.chapter-nav a:focus-visible { outline:2px solid #598773;outline-offset:2px; }
+.chapter-nav img { border-color:#fffdf5;box-shadow:none; }
+@media(max-width:760px) {
+  .hero .hero-copy h1 { font-size:clamp(43px,11vw,57px); }
+  .hero .hero-copy > p { font-size:13px;letter-spacing:.3px; }
+  .hero .hero-english { font-size:20px; }
+  .hero .sky-note { font-size:18px; }
+  .hero .hero-copy .cream-button { font-size:12px;padding:11px 15px;gap:18px; }
+  #postcards:not([data-view="list"]) { gap:22px; }
+  #postcards:not([data-view="list"]) .postcard:first-child { transform:none; }
+  #postcards:not([data-view="list"]) h3 { min-height:0;font-size:23px; }
+  .chapter-nav { border-radius:18px; }
+  .chapter-nav svg { width:24px;height:24px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .hero .hero-copy .cream-button,#postcards:not([data-view="list"]) .postcard { transition:none; }
+}

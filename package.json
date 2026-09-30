@@ -5,7 +5,7 @@
   "description": "Static personal website with Supabase authentication and owner-managed content",
   "scripts": {
     "test": "node --test tests/*.test.cjs",
-    "check": "node --check system.js && node --check images.js && node --check chapters.js && node --check script.js && node --check site-config.js"
+    "check": "node --check system.js && node --check blog.js && node --check images.js && node --check chapters.js && node --check script.js && node --check site-config.js"
   },
   "devDependencies": {
     "@electric-sql/pglite": "0.3.10",

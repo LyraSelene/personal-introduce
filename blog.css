@@ -1,0 +1,40 @@
+/* Blog is a quiet workbench beside the softer journal pages. */
+.blog-section { padding:58px 0 72px; }
+.blog-heading { align-items:flex-end; }
+.blog-heading { flex-wrap:wrap; }
+.blog-heading > div { flex:1 1 60%; }
+.chapter-nav { width:min(620px,calc(100vw - 32px)); }
+@media(max-width:600px){ .chapter-nav {width:calc(100% - 24px)} .chapter-nav a {min-width:32px} .chapter-nav a[aria-current="page"] {flex:1.6 1 0} }
+.blog-heading h2 { margin-bottom:8px; }
+.blog-toolbar { display:flex; gap:14px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin:27px 0 22px; padding:13px 15px; border:1px solid #dce3d4; border-radius:16px; background:#fffdf4b8; }
+.blog-search { display:flex; gap:8px; flex:1 1 320px; max-width:620px; }
+.blog-search input { flex:1; min-width:0; padding:10px 13px; border:1px solid #c6d5c7; border-radius:11px; background:#fffefa; color:var(--ink); font:13px/1.5 var(--sans); }
+.blog-filters { display:flex; gap:5px; flex-wrap:wrap; }
+.blog-filters button { border:0; border-radius:18px; padding:7px 13px; background:#edf1e6; color:#617669; font:12px/1.5 var(--sans); cursor:pointer; }
+.blog-filters button.selected { background:#4d8278; color:#fffdf1; }
+.blog-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.blog-card { display:flex; flex-direction:column; min-width:0; padding:20px; border:1px solid #e0e2d1; border-radius:4px 4px 19px 4px; background:linear-gradient(145deg,#fffef9,#f2f5e9); box-shadow:0 7px 20px #4863520a; }
+.blog-card-cover { width:100%; aspect-ratio:2.4/1; object-fit:cover; border-radius:11px 11px 5px 5px; margin-bottom:16px; background:#e8f0e9; }
+.blog-card-kicker { display:flex; align-items:center; gap:8px; color:#748678; font:10px/1.6 var(--sans); letter-spacing:1px; }
+.blog-card-kicker b { padding:3px 8px; border-radius:11px; background:#e3eee0; color:#4d7361; font-weight:500; letter-spacing:0; }
+.blog-card h3 { margin:10px 0 8px; color:#395e53; font:400 23px/1.5 var(--display-cn); overflow-wrap:anywhere; }
+.blog-card-excerpt { margin:0 0 16px; color:#687a6f; font:13px/1.9 var(--sans); display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; overflow-wrap:anywhere; }
+.blog-card-tags { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:16px; }
+.blog-card-tags span { padding:2px 8px; border-radius:10px; background:#f0f2e8; color:#788777; font:10px/1.5 var(--sans); }
+.blog-card-link { display:flex; justify-content:space-between; align-items:center; margin-top:auto; padding-top:12px; border-top:1px solid #dbe2d6; color:#4e7767; font:12px/1.6 var(--sans); }
+.blog-card-link span { font-size:18px; }
+.blog-card-button { padding:0; border:0; background:none; color:inherit; text-align:left; cursor:pointer; }
+.blog-card-button:focus-visible { outline:3px solid #5e927d; outline-offset:5px; }
+.blog-empty { padding:28px; border:1px dashed #c2d4c4; border-radius:17px; color:#6b8172; background:#fffef880; }
+.blog-manage-card { display:flex; gap:12px; justify-content:space-between; align-items:flex-start; }
+.blog-manage-card h3 { margin:0; font-size:18px; }
+.blog-status-pill { white-space:nowrap; padding:4px 9px; border-radius:12px; background:#e9efdc; color:#64794d; font:11px/1.5 var(--sans); }
+.blog-status-pill.draft { background:#f5ebd9; color:#8b7043; }
+.blog-reader .blog-reader-meta { color:#728074; font:12px/1.8 var(--sans); padding-bottom:15px; border-bottom:1px solid #d8e0d3; }
+.blog-reader .blog-reader-body { color:#4e6659; font:16px/2.1 var(--sans); white-space:pre-wrap; overflow-wrap:anywhere; }
+.blog-reader .blog-reader-body p { margin:0 0 23px; }
+.blog-reader .blog-reader-tags { display:flex; gap:6px; flex-wrap:wrap; margin:22px 0; }
+.blog-reader .blog-reader-tags span { color:#5d7c6b; background:#eaf0e2; border-radius:11px; padding:3px 9px; font:11px/1.5 var(--sans); }
+@media(max-width:760px){
+  .blog-section{padding:38px 0 48px}.blog-toolbar{align-items:stretch}.blog-search{flex-basis:100%}.blog-list{grid-template-columns:1fr}.blog-card{padding:18px;border-radius:18px}.blog-card h3{font-size:22px}.blog-reader .blog-reader-body{font-size:15px;line-height:2}.blog-manage-card{flex-direction:column}
+}

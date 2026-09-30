@@ -31,6 +31,12 @@
 
 ## 4. 管理内容
 
+### 博客升级
+
+已有项目打开 [SQL Editor](https://supabase.com/dashboard/project/vlwohcaffwlyupplzdki/sql/new)，新建查询，复制 `migration-blog.sql` 全文，点击 **Run**。成功后刷新网站，导航中点击「博客」；使用现有站主账号登录即可写文章和管理草稿。也可执行 `select public.blog_ready();` 确认返回 `true`。
+
+此脚本可重复运行，不清除心事、来信或账号。最新 `schema.sql` 已包含博客，新项目无需重复升级。博客默认保存为草稿，仅站主可见；勾选公开发布后，需要在预览中确认。回收站恢复的文章仍为草稿，需要重新发布。关闭编辑器前有未保存提醒，但博客目前没有本机自动暂存，请及时保存云端草稿。
+
 ### 配图升级
 
 完成 community 升级后，在 SQL Editor 粘贴 `migration-images.sql` 全文并 Run。可重复运行，既有内容不变；执行 `select public.images_ready();` 应返回 `true`。刷新网站后即可在心事编辑器和来信表单选择图片。最新版 `schema.sql` 已包含此升级，新项目无需额外执行迁移。不要重跑较早的迁移覆盖新权限函数。

@@ -1,9 +1,10 @@
 'use strict';
 (() => {
   const main=document.getElementById('main');
-  const definitions=[['home','首页'],['about','关于我'],['feelings','心情'],['journal','心事'],['letter','给你的信'],['messages','来信']];
+  const definitions=[['home','首页'],['about','关于我'],['feelings','心情'],['journal','心事'],['blog','博客'],['letter','给你的信'],['messages','来信']];
   if(!main||definitions.some(([id])=>!document.getElementById(id)))return;
   const icons={
+    blog:'<path d="M4 4h11l5 5v11H4Z M14 4v6h6M8 13h8M8 16h6"/>',
     about:'<rect x="5" y="3" width="15" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h5M3 19h13"/>',
     feelings:'<circle cx="12" cy="12" r="9"/><path d="M8 14q4 5 8 0M8 9h.01M16 9h.01"/>',
     journal:'<path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2-5.6-3-5.6 3 1.1-6.2L3 9.6l6.2-.9Z"/>',
@@ -22,11 +23,26 @@
     return page;
   });
   const ticker=document.querySelector('.ticker');if(ticker)pages[0].append(ticker);
+  const homeHero=document.getElementById('home');
+  if(homeHero){
+    const layer=document.createElement('div');layer.className='particle-layer';layer.setAttribute('aria-hidden','true');
+    const particles=[
+      [8,23,3,0],[16,68,2,1],[24,38,4,2],[31,78,2,3],[39,16,2,4],[47,61,3,5],
+      [55,30,2,6],[63,74,4,7],[71,20,2,8],[78,54,3,9],[86,33,2,10],[93,72,3,11],
+      [12,88,2,12],[28,57,2,13],[44,91,3,14],[59,47,2,15],[67,87,2,16],[82,12,3,17],
+      [91,46,2,18],[5,49,2,19],[36,48,2,20],[74,91,3,21]
+    ];
+    particles.forEach(([x,y,size,delay])=>{const dot=document.createElement('i');dot.className='particle';dot.style.setProperty('--particle-x',x+'%');dot.style.setProperty('--particle-y',y+'%');dot.style.setProperty('--particle-size',size+'px');dot.style.setProperty('--particle-delay',(-delay*.8)+'s');layer.append(dot);});
+    homeHero.append(layer);
+    const syncParticles=()=>{layer.hidden=document.hidden;};
+    document.addEventListener('visibilitychange',syncParticles);syncParticles();
+  }
   const homeCards=document.querySelector('.home-cards');if(homeCards)pages[0].append(homeCards);
   const recent=document.querySelector('.recent-updates'),recentSlot=document.querySelector('#home-recent-slot');
   if(recent&&recentSlot){recentSlot.replaceChildren(recent);recent.classList.add('recent-updates-compact');}
   const closing=document.querySelector('.closing'),footer=document.querySelector('.footer');
-  if(closing)pages[5].append(closing);if(footer)pages[5].append(footer);
+  const messagePage=pages.find(p=>p.dataset.chapter==='messages');
+  if(closing)messagePage.append(closing);if(footer)messagePage.append(footer);
   document.body.append(nav);
   const hint=document.querySelector('.hero-bottom>a');
   if(hint) {hint.href='#about';hint.lastChild.textContent='向右翻，慢慢认识我';}
@@ -44,7 +60,7 @@
     pages.forEach((page,i)=>{page.hidden=i!==index;page.inert=i!==index;});
     document.documentElement.dataset.chapter=definitions[index][0];
     [...nav.children].forEach((link,i)=>{if(i===index)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
-    if(history){const url=new URL(location.href);url.searchParams.delete('journal');url.hash=definitions[index][0];window.history.pushState(null,'',url);}
+    if(history){const url=new URL(location.href);url.searchParams.delete('journal');url.searchParams.delete('blog');url.hash=definitions[index][0];window.history.pushState(null,'',url);}
     if(previous!==-1) {
       const opening=document.querySelector('.arrival');if(opening)opening.hidden=true;
       const direction=index>previous?1:-1;

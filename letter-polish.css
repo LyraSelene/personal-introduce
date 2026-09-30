@@ -1,0 +1,96 @@
+/* A quieter letter page. All selectors are scoped so other chapters keep their look. */
+.chapter-page[data-chapter="letter"] {
+  background:
+    radial-gradient(ellipse at 8% 25%,#dce9e480,transparent 55%),
+    radial-gradient(ellipse at 92% 85%,#eee7c980,transparent 50%),
+    #f3f3e9;
+}
+#letter { isolation:isolate; }
+#letter .letter-paper {
+  max-width:830px;
+  padding:62px 76px 48px;
+  border:1px solid #dfdfcc;
+  border-radius:3px 3px 12px 3px;
+  transform:none;
+  background:
+    radial-gradient(#7c77500b .65px,transparent .85px) 0 0 / 5px 5px,
+    linear-gradient(110deg,#fffdf5,#fcf8e9 75%,#f8f3e2);
+  box-shadow:0 2px 3px #5f66450a,0 18px 48px #5f664510,
+    4px 5px 0 -1px #f7f5e9,4px 5px 0 0 #dedfcc,
+    8px 10px 0 -1px #f5f3e6,8px 10px 0 0 #e1e1ce;
+}
+#letter .letter-paper::before {
+  width:126px;height:29px;top:-13px;left:calc(50% - 63px);
+  background:repeating-linear-gradient(90deg,#b9c9a52b 0 2px,transparent 2px 5px),#d7dfbbaa;
+  border:1px solid #b1c49a30;
+  transform:rotate(-3deg);
+  box-shadow:0 1px 2px #6d784514;
+  pointer-events:none;
+}
+#letter .letter-paper::after {
+  content:'LIME LETTERS\A✳\AWITH WARMTH';
+  white-space:pre;
+  position:absolute;right:44px;top:37px;
+  display:grid;place-content:center;text-align:center;
+  width:91px;height:91px;border:3px double #718b634f;border-radius:50%;
+  color:#66835699;font:9px/1.85 var(--sans);letter-spacing:1px;
+  transform:rotate(13deg);pointer-events:none;
+}
+#letter .letter-paper > .eyebrow {
+  display:block;max-width:calc(100% - 115px);
+  font:9px/1.8 var(--sans);letter-spacing:1.7px;color:#72806b;
+}
+#letter .section-script {
+  font:italic 25px/1.5 Georgia,serif;color:#719184;
+  margin:12px 115px 24px 0;
+}
+#letter .section-script::before { content:none; }
+#letter .letter-paper h2 {
+  font:400 clamp(27px,3.1vw,36px)/1.5 var(--display-cn);
+  letter-spacing:1px;color:#365d54;margin:0 0 12px;
+  overflow-wrap:anywhere;
+}
+#letter .letter-date {
+  display:block;padding-bottom:24px;border-bottom:1px solid #d6ddc9;
+  font:11px/1.8 var(--sans);letter-spacing:1px;color:#747f69;
+  overflow-wrap:anywhere;
+}
+#letter .letter-body {
+  margin-top:30px;background:none;
+  font:15px/2.15 var(--sans);color:#52695c;
+  letter-spacing:.3px;overflow-wrap:anywhere;
+}
+#letter .letter-body p { margin:0 0 22px; }
+#letter .letter-body p:first-child {
+  font:400 23px/1.7 var(--display-cn);color:#53785f;margin-bottom:22px;
+}
+#letter .letter-body p:last-child { margin-bottom:0; }
+#letter .letter-signature {
+  margin-top:34px;padding:22px 70px 0 0;
+  border-top:1px dashed #d5ddc8;
+  color:#53735b;font:400 26px/1.5 var(--display-cn);
+  overflow-wrap:anywhere;
+}
+#letter .letter-signature > span {
+  font:12px/1.8 var(--sans);color:#697e64;margin-top:7px;
+}
+#letter .letter-signature svg {
+  top:26px;right:1px;width:48px;height:48px;color:#c1b46b;
+  transform:rotate(-14deg);
+}
+@media(max-width:760px) {
+  .chapter-page > #letter { width:calc(100% - 40px);padding-top:28px;padding-bottom:42px; }
+  #letter .letter-paper { padding:40px 26px 30px; }
+  #letter .letter-paper::after { top:27px;right:22px;width:68px;height:68px;font-size:7px;letter-spacing:.6px; }
+  #letter .letter-paper > .eyebrow { max-width:calc(100% - 80px);font-size:8px;letter-spacing:1px; }
+  #letter .section-script { font-size:22px;margin:8px 80px 23px 0; }
+  #letter .letter-paper h2 { font-size:27px;letter-spacing:0; }
+  #letter .letter-date { font-size:10px;padding-bottom:20px; }
+  #letter .letter-body { font-size:15px;line-height:2.05;letter-spacing:0;margin-top:24px; }
+  #letter .letter-signature { margin-top:28px;padding-top:18px;padding-right:57px;font-size:24px; }
+  #letter .letter-signature svg { width:39px;height:39px;top:25px; }
+}
+@media(max-width:360px) {
+  #letter .letter-paper { padding-inline:20px; }
+  #letter .letter-paper h2 { font-size:24px; }
+}

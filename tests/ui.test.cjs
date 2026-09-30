@@ -4,6 +4,64 @@ const { readFileSync } = require('node:fs');
 const { JSDOM } = require('jsdom');
 const { Script } = require('node:vm');
 const tick = () => new Promise(resolve => setTimeout(resolve,25));
+
+test('blog editor previews before publishing, preserves failed edits and guards exit',async()=>{
+  const client=fakeClient(true),dom=page(client),w=dom.window,d=w.document;
+  try{
+    await tick();await tick();assert.equal(d.querySelector('#blog-write').hidden,false);
+    d.querySelector('#blog-write').click();const editor=d.querySelector('dialog[aria-label="写一篇博客"]'),f=editor.querySelector('form');
+    f.querySelector('input[type=text]').value='A technical note';
+    f.querySelectorAll('textarea')[0].value='An excerpt';f.querySelectorAll('textarea')[1].value='  code\n<script>inert()</script>';
+    f.querySelector('input[type=checkbox]').checked=true;
+    editor.querySelector('.dialog-x').click();assert.ok(d.querySelector('dialog[aria-label="保留这篇未保存的博客？"]'));
+    [...d.querySelectorAll('button')].find(b=>b.textContent==='继续编辑').click();assert.ok(editor.isConnected);
+    f.dispatchEvent(new w.Event('submit',{cancelable:true}));
+    let preview=d.querySelector('dialog[aria-label="确认发布博客"]');
+    assert.ok(preview);assert.equal(preview.querySelector('.blog-reader-body p').textContent,'  code\n<script>inert()</script>');assert.equal(preview.querySelector('script'),null);
+    assert.equal(client.calls.some(c=>c.table==='blog_posts'&&c.operation==='insert'),false);
+    const rpc=client.rpc;client.rpc=name=>name==='blog_ready'?Promise.resolve({error:{message:'network failed'}}):rpc(name);
+    [...preview.querySelectorAll('button')].find(b=>b.textContent==='确认发布').click();await tick();
+    assert.match(preview.textContent,/网络连接失败/);assert.equal(f.querySelectorAll('textarea')[1].value,'  code\n<script>inert()</script>');
+    client.rpc=rpc;[...preview.querySelectorAll('button')].find(b=>b.textContent==='确认发布').click();await tick();
+    assert.equal(editor.isConnected,false);const saved=client.calls.find(c=>c.table==='blog_posts'&&c.operation==='insert');
+    assert.equal(saved.payload.published,true);assert.equal(saved.payload.excerpt,'An excerpt');assert.equal(saved.payload.category,'tech');
+  }finally{await tick();w.close();}
+});
+
+test('blog public list searches, paginates and retries a missing migration',async()=>{
+  const client=fakeClient(false),rpc=client.rpc,calls=[];let missing=true;
+  const post={id:'blog-1',title:'<img src=x>',body:'<script>bad()</script>',excerpt:'A note',category:'tech',tags:'SQL',published:true,created_at:'2026-09-01'};
+  client.rpc=(name,args)=>{
+    if(name!=='public_blog_posts')return rpc(name);
+    calls.push(args);return Promise.resolve(missing?{error:{code:'PGRST202'}}:{data:args.page_offset?[]:Array.from({length:12},(_,i)=>({...post,id:`blog-${i}`}))});
+  };
+  const dom=page(client),w=dom.window,d=w.document;
+  try{
+    await tick();await tick();assert.equal(d.querySelector('#blog-write').hidden,true);assert.match(d.querySelector('#blog-status').textContent,/migration-blog.sql/);
+    missing=false;d.querySelector('#blog-more').click();await tick();assert.equal(d.querySelectorAll('.blog-card').length,12);
+    d.querySelector('.blog-card-button').click();assert.equal(d.querySelector('.blog-reader script'),null);assert.equal(d.querySelector('.blog-reader .blog-reader-body p').textContent,post.body);d.querySelector('.blog-reader').close();
+    d.querySelector('#blog-more').click();await tick();assert.equal(calls.at(-1).page_offset,12);assert.equal(d.querySelector('#blog-more').hidden,true);
+    d.querySelector('#blog-search input').value='SQL';d.querySelector('#blog-search').dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();
+    assert.equal(calls.at(-1).search_query,'SQL');assert.equal(calls.at(-1).page_offset,0);
+    d.querySelector('[data-blog-category="ai"]').click();await tick();assert.equal(calls.at(-1).category_filter,'ai');assert.equal(calls.at(-1).page_offset,0);
+  }finally{await tick();w.close();}
+});
+
+test('shared blog opens independently of list and requires public nondeleted data',async()=>{
+  const client=fakeClient(false),from=client.from,filters=[];
+  const post={id:'old-blog',title:'Older post',body:'Still accessible',category:'notes',published:true,created_at:'2026-01-01'};
+  client.from=table=>{
+    if(table!=='blog_posts')return from(table);
+    const chain={select(){return chain;},eq(...args){filters.push(args);return chain;},is(...args){filters.push(args);return chain;},single(){return Promise.resolve({data:post});}};return chain;
+  };
+  const dom=page(client,'https://sixmonth12.github.io/personal-introduce/?blog=old-blog#blog'),w=dom.window,d=w.document;
+  try{
+    await tick();await tick();assert.equal(d.querySelector('[data-reading-blog]').dataset.readingBlog,'old-blog');
+    assert.ok(filters.some(([k,v])=>k==='published'&&v===true));assert.ok(filters.some(([k,v])=>k==='deleted_at'&&v===null));
+    assert.equal(d.querySelector('.chapter-page:not([hidden])').dataset.chapter,'blog');
+    assert.equal(d.querySelectorAll('[data-reading-blog]').length,1);
+  }finally{await tick();w.close();}
+});
 test('image draft recovers into preview, survives failed save, and can be removed',async()=>{
   const client=fakeClient(true),dom=page(client),w=dom.window,d=w.document;await tick();await tick();
   try{
@@ -39,7 +97,7 @@ test('chapter links, keyboard and history retain one visible chapter without int
   const dom=page(),w=dom.window,d=w.document;
   const active=()=>[...d.querySelectorAll('.chapter-page')].filter(p=>!p.hidden);
   assert.equal(active().length,1);assert.equal(active()[0].dataset.chapter,'home');
-  assert.equal(d.querySelectorAll('.chapter-nav a').length,6);
+  assert.equal(d.querySelectorAll('.chapter-nav a').length,7);
   d.querySelector('.cream-button').click();
   assert.equal(active()[0].dataset.chapter,'about');assert.equal(w.location.hash,'#about');
   const about=active()[0];about.scrollTop=120;
@@ -88,6 +146,7 @@ function page(client,url='https://sixmonth12.github.io/personal-introduce/') {
   Object.defineProperty(w.HTMLElement.prototype,'innerText',{get(){return this.textContent;},set(t){this.textContent=t;}});
   new Script(readFileSync('script.js','utf8')).runInContext(dom.getInternalVMContext());
   new Script(readFileSync('images.js','utf8')).runInContext(dom.getInternalVMContext());
+  new Script(readFileSync('blog.js','utf8')).runInContext(dom.getInternalVMContext());
   if(client){w.LIME_CONFIG={supabaseUrl:'https://test.supabase.co',supabaseKey:'sb_publishable_test',siteUrl:w.location.href};w.supabase={createClient:()=>client};}
   new Script(readFileSync('system.js','utf8')).runInContext(dom.getInternalVMContext());
   new Script(readFileSync('chapters.js','utf8')).runInContext(dom.getInternalVMContext());
@@ -100,7 +159,7 @@ function fakeClient(isOwner) {
   const calls=[];
   return {calls,
     auth:{onAuthStateChange(fn){cb=fn;setTimeout(()=>fn('INITIAL_SESSION',{user:{id:'me'},access_token:'one'}),0);},async signOut(){cb('SIGNED_OUT',null);return {data:{},error:null};}},
-    rpc(name){if(name.endsWith('_images'))return Promise.resolve({error:{code:'PGRST202'}});return Promise.resolve({data:name==='is_site_owner'?isOwner:['message_consent_ready','images_ready'].includes(name)?true:[],error:null});},
+    rpc(name){if(name.endsWith('_images'))return Promise.resolve({error:{code:'PGRST202'}});return Promise.resolve({data:name==='is_site_owner'?isOwner:['message_consent_ready','images_ready','blog_ready'].includes(name)?true:[],error:null});},
     from(table){let operation='select',payload;const filters=[],orders=[];let range;const chain={
       select(){return chain;},eq(...args){filters.push(args);return chain;},is(...args){filters.push(args);return chain;},order(...args){orders.push(args);return chain;},range(...args){range=args;return chain;},
       update(value){operation='update';payload=value;return chain;},insert(value){operation='insert';payload=value;return chain;},upsert(value){operation='upsert';payload=value;return chain;},

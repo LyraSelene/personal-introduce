@@ -15,6 +15,10 @@
   <link rel="stylesheet" href="chapters.css?v=community-2">
   <link rel="stylesheet" href="home-cards.css?v=1">
   <link rel="stylesheet" href="journal-reading.css?v=1">
+  <link rel="stylesheet" href="letter-polish.css?v=1">
+  <link rel="stylesheet" href="sky-polish.css?v=1">
+  <link rel="stylesheet" href="particle-effects.css?v=1">
+  <link rel="stylesheet" href="blog.css?v=1">
   <link rel="preload" as="image" href="assets/stickers/arrival-plane.webp">
 </head>
 <body>
@@ -27,7 +31,7 @@
   <a class="skip-link" href="#main">跳到正文</a>
   <header class="site-header">
     <a class="brand" href="#home" aria-label="酸橙来信 首页"><svg><use href="#citrus"/></svg><span>酸橙来信<small>Lime Letters</small></span></a>
-    <nav aria-label="主导航"><a class="active" href="#home">首页<span>Home</span></a><a href="#about">关于我<span>About Me</span></a><a href="#feelings">此刻心情<span>Feelings</span></a><a href="#journal">心事手记<span>Letters</span></a></nav>
+    <nav aria-label="主导航"><a class="active" href="#home">首页<span>Home</span></a><a href="#about">关于我<span>About Me</span></a><a href="#feelings">此刻心情<span>Feelings</span></a><a href="#blog">博客<span>Blog</span></a><a href="#journal">心事手记<span>Letters</span></a></nav>
     <div class="header-actions"><button class="bgm-toggle" id="bgm-toggle" type="button" aria-label="播放背景音乐" aria-pressed="false"><span class="bgm-note" aria-hidden="true">♫</span><span class="bgm-label">播放 BGM</span><span class="bgm-bars" aria-hidden="true"><i></i><i></i><i></i></span></button><button class="sky-switch" id="sky-switch" aria-label="切换为日落天空" aria-pressed="false"><span class="sun-icon">☀</span><span class="sky-label">今日晴</span></button></div>
   </header>
   <main id="main">
@@ -61,6 +65,12 @@
     </section>
 
     <section class="feelings-section" id="feelings" aria-labelledby="feelings-title"><div class="section-wrap"><div class="section-heading"><div><span class="eyebrow">02 / WEATHER INSIDE MY HEAD</span><span class="section-script" lang="en">Weather Inside</span><h2 id="feelings-title">心里，也有天气。</h2><p>有些感受不太好解释，就先把它们放在这里。</p></div><span class="handwritten">a small forecast of me ↘</span></div><div class="feeling-layout"><div class="feeling-picker" role="group" aria-label="选择一张心情卡片"><button class="feeling-option selected" data-feeling="wonder" aria-pressed="true"><span>01</span><strong>对世界好奇</strong><i>✳</i></button><button class="feeling-option" data-feeling="uncertain" aria-pressed="false"><span>02</span><strong>偶尔没方向</strong><i>☁</i></button><button class="feeling-option" data-feeling="hope" aria-pressed="false"><span>03</span><strong>仍然有期待</strong><i>☀</i></button></div><div class="feeling-display" aria-live="polite" aria-atomic="true"><span class="feeling-symbol" id="feeling-symbol" aria-hidden="true">✳</span><span class="eyebrow" id="feeling-caption">CURIOUS / 晴，有一点风</span><h3 id="feeling-title">想知道，<br>世界为什么这样运转。</h3><p id="feeling-text">遇见一个有意思的问题，我总想再往里走一点。比起立刻得到答案，那个“原来如此”的瞬间，常常更让我着迷。</p><span class="feeling-footnote">一小块心情，不是我的全部。</span></div></div><div class="small-likes"><span class="likes-label">也想留一点位置给</span><span>☁ 没有目的的发呆</span><span>✧ 突然想通的瞬间</span><span>✎ 能说真话的地方</span></div></div></section>
+
+    <section class="blog-section section-wrap" id="blog" aria-labelledby="blog-title">
+      <div class="section-heading blog-heading"><div><span class="eyebrow">03 / NOTES FROM THE WORKBENCH</span><span class="section-script" lang="en">Little Blog</span><h2 id="blog-title">把学到的东西，写下来。</h2><p>技术学习、项目记录和一些正在形成的想法。</p></div><button class="text-button" id="blog-write" hidden>写一篇博客 <span>↗</span></button></div>
+      <div class="blog-toolbar"><form id="blog-search" class="blog-search"><input type="search" aria-label="搜索博客" placeholder="搜索标题、摘要或标签" maxlength="120"><button class="system-button primary" type="submit">搜索</button></form><div id="blog-filters" class="blog-filters" role="group" aria-label="博客分类"><button class="selected" data-blog-category="all" aria-pressed="true">全部</button><button data-blog-category="tech" aria-pressed="false">技术</button><button data-blog-category="ai" aria-pressed="false">AI</button><button data-blog-category="notes" aria-pressed="false">随笔</button></div></div>
+      <div id="blog-list" class="blog-list"></div><p id="blog-status" class="system-status" role="status"></p><button id="blog-more" class="system-button" hidden>加载更多</button>
+    </section>
 
     <section class="journal section-wrap" id="journal" aria-labelledby="journal-title">
 
@@ -96,7 +106,8 @@
   <script src="site-config.js"></script>
   <script src="assets/vendor/supabase.js"></script>
   <script src="images.js?v=images-1"></script>
-  <script src="system.js?v=journal-reading-1"></script>
-  <script src="chapters.js?v=home-cards-1"></script>
+  <script src="blog.js?v=1"></script>
+  <script src="system.js?v=blog-1"></script>
+  <script src="chapters.js?v=blog-1"></script>
 </body>
 </html>

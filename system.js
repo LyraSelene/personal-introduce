@@ -19,6 +19,7 @@
   let user = null, owner = false, sessionVersion = 0, publicOffset = 0, journalOffset = 0;
   let journalQuery = '', journalCategory = 'all', journalRequest = 0, routeRequest = 0;
   let pendingDiscussion=null;
+  let blog=null;
   const categories = { self: '关于自己', life: '日常碎片', thoughts: '胡思乱想', review: '评价', suggestion: '建议', question: '提问' };
   const date = value => new Date(value).toLocaleString('zh-CN', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', hour12:false });
   const node = (tag, cls, text) => { const el = document.createElement(tag); if (cls) el.className = cls; if (text !== undefined) el.textContent = text; return el; };
@@ -125,6 +126,7 @@
   q('#edit-note').addEventListener('click',()=>editText('pocket.text'));
   const dock=node('aside','account-dock'); dock.setAttribute('aria-label','账号与管理'); document.body.append(dock);
   function renderAccount() {
+    blog?.sessionChanged();
     dock.replaceChildren();
     if (!user) dock.append(button('登录 / 注册',()=>authDialog()));
     else {
@@ -429,6 +431,7 @@
     const d=modal('我的小小宇宙'),actions=node('div','system-actions');
     const inbox=button('收到的来信',()=>{d.close();messageInbox(true);});inbox.append(node('span','unread-badge'));
     actions.append(button('编辑网站文字',()=>{d.close();editText();}),button('写一篇心事',()=>{d.close();editJournal();}),button('管理心事 / 草稿',()=>{d.close();journalManager();}),inbox);refreshUnreadCount();
+    if(blog)actions.append(button('管理博客 / 草稿',()=>{d.close();blog.manage();}));
     d.append(node('p','system-note','文字与心事保存后会同步到云端。草稿只有你可见；来信默认私密，仅获发信人授权的来信可以公开。'),actions);
     d.append(button('把原有三篇手记导入为草稿',async()=>{
       const f=node('div');d.append(f);const out=status(f);
@@ -556,6 +559,7 @@
     if(version===sessionVersion){renderAccount();openSharedJournal();}
     if(version===sessionVersion&&user&&pendingDiscussion){const post=pendingDiscussion;pendingDiscussion=null;sendMessage(post);}
   }
+  blog=window.createLimeBlog?.({db,config,images,node,button,modal,field,select,checkbox,status,check,busy,errorText,date,identity:()=>({user,owner})});
   renderAccount();
   window.addEventListener('popstate',openSharedJournal);
   window.addEventListener('hashchange',openSharedJournal);

@@ -1,0 +1,55 @@
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {readFileSync}=require('node:fs');
+const {PGlite}=require('@electric-sql/pglite');
+
+test('blog migration preserves data and enforces public, draft and owner boundaries',async()=>{
+  const db=new PGlite(),owner='10000000-0000-4000-8000-000000000001',visitor='10000000-0000-4000-8000-000000000002';
+  const id='20000000-0000-4000-8000-000000000001';
+  const rows=async sql=>(await db.query(sql)).rows;
+  const as=async(role,user='')=>db.exec(`reset role; select set_config('request.jwt.claim.sub','${user}',false); set role ${role};`);
+  try{
+    await db.exec(`create role anon; create role authenticated; create schema auth;
+      create table auth.users(id uuid primary key,email text,email_confirmed_at timestamptz);
+      create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid $$;
+      grant usage on schema auth to anon,authenticated; grant execute on function auth.uid() to anon,authenticated;
+      insert into auth.users values('${owner}','owner@example.test',now()),('${visitor}','visitor@example.test',now());`);
+    await db.exec(readFileSync('supabase/schema.sql','utf8'));
+    await db.exec(readFileSync('supabase/set-owner.sql','utf8').replace('YOUR_VERIFIED_EMAIL','owner@example.test'));
+    await as('authenticated',owner);
+    await db.exec(`insert into public.blog_posts(id,title,body,tags) values('${id}','SQL 100%','private body','postgres');`);
+    const original=(await rows(`select * from public.blog_posts where id='${id}'`))[0];
+    await as('anon');
+    assert.equal((await rows('select public.blog_ready() as ready'))[0].ready,true);
+    assert.equal((await rows('select * from public.blog_posts')).length,0);
+    assert.equal((await rows("select * from public.public_blog_posts('private')")).length,0);
+    await assert.rejects(db.exec("insert into public.blog_posts(title,body) values('evil','bad')"),/permission denied/);
+    await as('authenticated',visitor);
+    await assert.rejects(db.exec("insert into public.blog_posts(title,body) values('evil','bad')"),/row-level security/);
+    assert.equal((await rows(`update public.blog_posts set published=true where id='${id}' returning *`)).length,0);
+    await as('authenticated',owner);
+    await db.exec(`update public.blog_posts set published=true,body='public text',image_data='data:image/png;base64,AAAA',created_at='2000-01-01' where id='${id}';`);
+    const saved=(await rows(`select * from public.blog_posts where id='${id}'`))[0];
+    assert.equal(saved.created_at.getTime(),original.created_at.getTime());
+    assert.ok(saved.updated_at.getTime()>original.updated_at.getTime());
+    assert.equal((await rows(`update public.blog_posts set body='stale' where id='${id}' and updated_at='${original.updated_at.toISOString()}' returning *`)).length,0);
+    await assert.rejects(db.exec(`update public.blog_posts set image_data='data:image/svg+xml;base64,AAAA' where id='${id}'`),/check constraint/);
+    await as('anon');
+    assert.equal((await rows("select * from public.public_blog_posts('%')")).length,1);
+    assert.equal((await rows("select * from public.public_blog_posts('_')")).length,0);
+    assert.equal((await rows("select * from public.public_blog_posts('POSTGRES','tech')")).length,1);
+    assert.equal((await rows("select * from public.public_blog_posts('','ai')")).length,0);
+    await as('authenticated',owner);
+    await db.exec(`update public.blog_posts set deleted_at=now() where id='${id}'`);
+    await as('anon');
+    assert.equal((await rows('select * from public.blog_posts')).length,0);
+    assert.equal((await rows('select * from public.public_blog_posts()')).length,0);
+    await as('authenticated',owner);
+    await db.exec(`update public.blog_posts set deleted_at=null,published=false where id='${id}'`);
+    await assert.rejects(db.exec('delete from public.blog_posts'),/permission denied/);
+    await as('anon');assert.equal((await rows('select * from public.blog_posts')).length,0);
+    await db.exec('reset role');
+    const migration=readFileSync('supabase/migration-blog.sql','utf8');await db.exec(migration);await db.exec(migration);
+    assert.equal((await rows('select body from public.blog_posts'))[0].body,'public text');
+  }finally{await db.close();}
+});
