@@ -193,7 +193,8 @@
   recent.append(node('span','section-script','Fresh Letters'),node('h2','','最近更新'));
   const recentList=node('div','recent-list'),recentStatus=status(recent);
   const recentRetry=button('重新加载',()=>loadRecent());recentRetry.hidden=true;
-  recent.append(recentList,recentRetry);q('#home .hero-bottom').before(recent);
+  recent.append(recentList,recentRetry);
+  q('#home .hero-bottom').before(recent);
   const search=node('form','journal-search');
   const searchInput=node('input');searchInput.type='search';searchInput.name='q';searchInput.placeholder='搜索标题、正文或分类';searchInput.maxLength=120;searchInput.setAttribute('aria-label','搜索心事');
   const searchButton=button('搜索',()=>{},'primary');searchButton.type='submit';search.append(searchInput,searchButton);q('.journal-toolbar').append(search);

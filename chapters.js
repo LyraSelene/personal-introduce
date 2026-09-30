@@ -22,6 +22,9 @@
     return page;
   });
   const ticker=document.querySelector('.ticker');if(ticker)pages[0].append(ticker);
+  const homeCards=document.querySelector('.home-cards');if(homeCards)pages[0].append(homeCards);
+  const recent=document.querySelector('.recent-updates'),recentSlot=document.querySelector('#home-recent-slot');
+  if(recent&&recentSlot){recentSlot.replaceChildren(recent);recent.classList.add('recent-updates-compact');}
   const closing=document.querySelector('.closing'),footer=document.querySelector('.footer');
   if(closing)pages[5].append(closing);if(footer)pages[5].append(footer);
   document.body.append(nav);

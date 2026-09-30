@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="system.css?v=images-1">
   <link rel="stylesheet" href="arrival.css?v=plane-1">
   <link rel="stylesheet" href="chapters.css?v=community-2">
+  <link rel="stylesheet" href="home-cards.css?v=1">
   <link rel="preload" as="image" href="assets/stickers/arrival-plane.webp">
 </head>
 <body>
@@ -41,6 +42,16 @@
     </section>
 
     <div class="ticker" aria-hidden="true"><span>STAY CURIOUS</span><svg><use href="#spark"/></svg><span>今天也有好事发生</span><svg><use href="#citrus"/></svg><span>TAKE THE SCENIC ROUTE</span><svg><use href="#spark"/></svg><span>把好奇心装进口袋</span></div>
+
+    <section class="home-cards section-wrap" aria-labelledby="home-cards-title">
+      <div class="home-cards-heading"><div><span class="eyebrow">A FEW LITTLE DOORS</span><h2 id="home-cards-title">再停一会儿，慢慢逛。</h2></div><span>从这里，走近我的日常。</span></div>
+      <div class="home-cards-grid">
+        <a class="home-card home-card-about" href="#about"><img src="assets/profile-portrait.jpg" width="64" height="64" alt="" loading="lazy"><span class="home-card-kicker">01 / ABOUT ME</span><h3>先认识一下我</h3><p>关于我的一些小事，和还在慢慢寻找的答案。</p><span class="home-card-link">读一段自我介绍 <span aria-hidden="true">↗</span></span></a>
+        <a class="home-card home-card-feelings" href="#feelings"><span class="home-card-icon" aria-hidden="true">☀</span><span class="home-card-kicker">02 / FEELINGS</span><h3>心里，也有天气</h3><p>好奇、迷茫、期待。每一种心情，都有自己的位置。</p><span class="home-card-link">看看我的心情 <span aria-hidden="true">↗</span></span></a>
+        <section class="home-card home-card-recent" aria-label="最近心事"><span class="home-card-kicker">03 / LITTLE LETTERS</span><h3>最近写下的心事</h3><div id="home-recent-slot"><p class="home-recent-placeholder">文字正在路上，可以先去手记里逛逛。</p></div><a class="home-card-link" href="#journal">全部心事 <span aria-hidden="true">↗</span></a></section>
+        <a class="home-card home-card-message" href="#messages"><span class="home-card-icon" aria-hidden="true">✉</span><span class="home-card-kicker">04 / SAY HELLO</span><h3>也想听听你说</h3><p>一句问候、一个问题，或是读完之后的小小感受。</p><span class="home-card-link">去来信交流 <span aria-hidden="true">↗</span></span></a>
+      </div>
+    </section>
 
     <section class="about personal-about section-wrap" id="about" aria-labelledby="about-title">
 
@@ -84,7 +95,7 @@
   <script src="site-config.js"></script>
   <script src="assets/vendor/supabase.js"></script>
   <script src="images.js?v=images-1"></script>
-  <script src="system.js?v=images-1"></script>
-  <script src="chapters.js?v=community-2"></script>
+  <script src="system.js?v=home-cards-1"></script>
+  <script src="chapters.js?v=home-cards-1"></script>
 </body>
 </html>
