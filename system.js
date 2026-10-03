@@ -173,11 +173,28 @@
     if(mode!=='reset') {const tabs=node('div','system-tabs');[['login','已有账号'],['signup','注册账号'],['recovery','忘记密码']].forEach(([m,t])=>{if(m!==mode)tabs.append(button(t,()=>{d.close();authDialog(m);}));});d.append(tabs);}
     d.append(node('p','system-note','访客账号可以寄送来信；网站正文和心事仅由站主管理。'));
   }
-  async function loadText() {
-    const rows=check(await db.from('site_text').select('key,value'));
-    rows.forEach(row=>fields.get(row.key)?.apply(row.value));
-    const active=q('[data-feeling].selected');if(active)active.click();
+async function loadText() {
+  let rows;
+
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      rows = check(await db.from('site_text').select('key,value'));
+      break; // 读取成功，结束重试
+    } catch (error) {
+      const networkError =
+        /fetch|network|load failed|timeout/i.test(error?.message || '');
+
+      // 只重试网络错误，而且最多重试一次
+      if (!networkError || attempt === 1) throw error;
+
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    }
   }
+
+  rows.forEach(row => fields.get(row.key)?.apply(row.value));
+  const active = q('[data-feeling].selected');
+  if (active) active.click();
+}
   function editText(initial) {
     if(!owner)return;
     const d=modal('编辑网站文字'),f=node('form','system-form');d.append(f);
@@ -296,10 +313,27 @@
     const request=++journalRequest;
     if(reset)journalOffset=0;
     if(reset&&!journalQuery&&journalCategory==='all')loadRecent();
-    journalMore.disabled=true;
-    try {
+     journalMore.disabled=true;
+     journalStatus.textContent='正在加载心事，请稍候…';
+    try{
       const offset=reset?0:journalOffset;
-      const rows=await queryJournals(offset);
+      let rows;
+
+    try {
+      rows = await queryJournals(offset);
+    } catch (error) {
+      const networkError =
+        /fetch|network|load failed|timeout/i.test(error?.message || '');
+
+      if (!networkError || navigator.onLine === false) throw error;
+      if (request !== journalRequest) return;
+
+      journalStatus.textContent = '连接暂时中断，1 秒后自动重试…';
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      if (request !== journalRequest) return;
+      rows = await queryJournals(offset);
+    }
       if(request!==journalRequest)return;
       if(reset)q('#postcards').replaceChildren();
       rows.forEach(post=>{
@@ -320,7 +354,13 @@
       delete journalMore.dataset.retry;
       document.querySelectorAll('[data-category]').forEach(card=>{card.hidden=journalCategory!=='all'&&card.dataset.category!==journalCategory;});
       q('[data-filter="all"] sup').textContent=String(journalOffset).padStart(2,'0');
-    }catch(e){if(request!==journalRequest)return;journalStatus.textContent=errorText(e);journalMore.hidden=false;journalMore.dataset.retry=String(reset);journalMore.textContent='重试加载心事';}
+    }catch(e){
+      if(request!==journalRequest)return;
+      journalStatus.textContent = /fetch|network|load failed|timeout/i.test(e?.message || '')
+        ? '心事暂时无法加载，请点击“重试加载心事”。'
+        : errorText(e);
+      journalMore.hidden=false;journalMore.dataset.retry=String(reset);journalMore.textContent='重试加载心事';
+    }
     finally{if(request===journalRequest)journalMore.disabled=false;}
   }
   async function loadDiscussionCounts(posts) {
@@ -575,7 +615,8 @@
       currentToken=token;
       setTimeout(async()=>{await syncSession(session);if(event==='PASSWORD_RECOVERY')authDialog('reset');},0);
     });
-    loadText().catch(e=>showToast(`文字暂未同步。${errorText(e)}`));fetchJournal();loadPublicMessages();
+    loadText().catch(() => {
+  showToast('最新网站文字暂时无法加载，当前显示页面自带文案。请稍后刷新。');});fetchJournal();loadPublicMessages();
   }else{
     loadRecent();
     boardStatus.textContent='来信功能正在准备中，网站内容可正常浏览。';

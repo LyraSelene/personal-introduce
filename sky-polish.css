@@ -109,3 +109,25 @@
 @media(prefers-reduced-motion:reduce) {
   .hero .hero-copy .cream-button,#postcards:not([data-view="list"]) .postcard { transition:none; }
 }
+/* 夜间：带一点青绿色的天空 */
+body.dusk .chapter-page {
+  background: linear-gradient(145deg, #263f48, #1c3038);
+}
+
+/* 底部导航：与夜色保持一致 */
+body.dusk .chapter-nav {
+  background: #29434a;
+  border-color: #526b6c;
+  box-shadow: 0 8px 26px #10212840;
+}
+
+body.dusk .chapter-nav a {
+  color: #c0d0c8;
+}
+
+/* 当前选中的栏目 */
+body.dusk .chapter-nav a[aria-current="page"] {
+  background: #435f58;
+  color: #f3edcf;
+  box-shadow: none;
+}
