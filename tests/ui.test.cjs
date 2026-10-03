@@ -5,6 +5,84 @@ const { JSDOM } = require('jsdom');
 const { Script } = require('node:vm');
 const tick = () => new Promise(resolve => setTimeout(resolve,25));
 
+test('journal summaries render before covers and recent entries fetch complete text only on click',async()=>{
+  const client=fakeClient(false),rpc=client.rpc,from=client.from,requests=[],covers=[];
+  const summary={id:'summary-1',title:'Short title',excerpt:'Short excerpt',has_image:true,category:'life',published:true,created_at:'2026-01-01',updated_at:'2026-01-01'};
+  let deliverList;
+  client.rpc=(name,args)=>name==='journal_summaries'?(args.recent_first?Promise.resolve({data:[summary]}):new Promise(resolve=>{deliverList=resolve;})):rpc(name,args);
+  client.from=table=>{
+    if(table!=='journal_posts')return from(table);
+    let fields;const filters=[];
+    const chain={select(value){fields=value;return chain;},eq(...value){filters.push(value);return chain;},is(...value){filters.push(value);return chain;},single(){
+      requests.push({fields,filters});
+      if(fields==='id,image_data')return new Promise(resolve=>covers.push(resolve));
+      return Promise.resolve({data:{...summary,body:'Full body beyond the excerpt'}});
+    }};return chain;
+  };
+  const dom=page(client),w=dom.window,d=w.document;
+  try{
+    assert.equal(d.querySelectorAll('#postcards [data-article]').length,0);
+    assert.equal(d.querySelectorAll('.journal-skeleton').length,3);
+    assert.equal(d.querySelector('#postcards').getAttribute('aria-busy'),'true');
+    await tick();await tick();
+    assert.equal(requests.length,0);
+    deliverList({data:[summary]});await tick();
+    assert.equal(d.querySelectorAll('.journal-skeleton').length,0);
+    assert.match(d.querySelector('#postcards').textContent,/Short excerpt/);
+    assert.equal(requests.length,0); // Hidden chapter does not download covers.
+    d.querySelector('.chapter-nav a[href="#journal"]').click();await tick();
+    assert.equal(covers.length,1);assert.equal(d.querySelector('#postcards img'),null);
+    assert.equal(d.querySelector('#postcards').getAttribute('aria-busy'),'false');
+    d.querySelector('.recent-entry').click();await tick();
+    assert.match(d.querySelector('.system-journal-body').textContent,/Full body beyond the excerpt/);
+    assert.equal(requests.filter(r=>r.fields.includes('body')).length,1);
+    for(const req of requests){assert.ok(req.filters.some(([k,v])=>k==='published'&&v===true));assert.ok(req.filters.some(([k,v])=>k==='deleted_at'&&v===null));}
+    const reader=d.querySelector('.journal-reader');reader.close();
+    covers.forEach(resolve=>resolve({data:{image_data:'data:image/png;base64,AAAA'}}));await tick();
+    assert.ok(d.querySelector('#postcards img'));assert.equal(d.querySelector('.journal-reader'),null);
+  }finally{await tick();w.close();}
+});
+
+test('cover failures can retry without opening a reader and queued covers pause in other chapters',async()=>{
+  const client=fakeClient(false),rpc=client.rpc,from=client.from,pending=[];
+  const rows=Array.from({length:3},(_,i)=>({id:`cover-${i}`,title:`Letter ${i}`,excerpt:'Text first',has_image:true,category:'life',published:true,created_at:'2026-01-01'}));
+  client.rpc=(name,args)=>name==='journal_summaries'?Promise.resolve({data:args.recent_first?[]:rows}):rpc(name,args);
+  client.from=table=>{
+    if(table!=='journal_posts')return from(table);
+    const chain={select(){return chain;},eq(){return chain;},is(){return chain;},single(){return new Promise(resolve=>pending.push(resolve));}};return chain;
+  };
+  const dom=page(client),w=dom.window,d=w.document;
+  try{
+    await tick();await tick();
+    d.querySelector('.chapter-nav a[href="#journal"]').click();await tick();assert.equal(pending.length,2);
+    d.querySelector('.chapter-nav a[href="#home"]').click();
+    pending.shift()({error:{message:'network failed'}});pending.shift()({data:{image_data:null}});await tick();
+    assert.equal(pending.length,0);
+    const retry=d.querySelector('.cover-retry');assert.ok(retry);assert.equal(retry.closest('.post-open'),null);
+    d.querySelector('.chapter-nav a[href="#journal"]').click();await tick();assert.equal(pending.length,1);
+    retry.click();assert.equal(pending.length,2);assert.equal(d.querySelector('.journal-reader'),null);
+    pending.shift()({data:{image_data:null}});pending.shift()({data:{image_data:'data:image/png;base64,AAAA'}});await tick();
+    assert.equal(d.querySelector('.cover-retry'),null);assert.ok(d.querySelector('[data-cover-id="cover-0"] img'));
+  }finally{await tick();w.close();}
+});
+
+test('failed and superseded journal requests never leave example cards or stale results',async()=>{
+  const client=fakeClient(false),rpc=client.rpc,pending=[];
+  client.rpc=(name,args)=>name==='journal_summaries'?args.recent_first?Promise.resolve({data:[]}):new Promise(resolve=>pending.push(resolve)):rpc(name,args);
+  const dom=page(client),w=dom.window,d=w.document;
+  try{
+    await tick();pending.shift()({error:{message:'service unavailable'}});await tick();
+    assert.equal(d.querySelectorAll('#postcards [data-article]').length,0);
+    assert.equal(d.querySelectorAll('.journal-skeleton').length,0);assert.ok(d.querySelector('#postcards .system-empty'));
+    [...d.querySelectorAll('button')].find(b=>b.textContent==='重试加载心事').click();
+    d.querySelector('[data-filter="life"]').click();
+    const stale={id:'stale',title:'Stale result',excerpt:'old',category:'self',has_image:false,created_at:'2026-01-01'};
+    pending.shift()({data:[stale]});await tick();assert.doesNotMatch(d.querySelector('#postcards').textContent,/Stale result/);
+    pending.shift()({data:[]});await tick();assert.equal(d.querySelector('#postcards').getAttribute('aria-busy'),'false');
+    assert.equal(d.querySelectorAll('#postcards .postcard').length,0);
+  }finally{await tick();w.close();}
+});
+
 test('blog editor previews before publishing, preserves failed edits and guards exit',async()=>{
   const client=fakeClient(true),dom=page(client),w=dom.window,d=w.document;
   try{
@@ -147,6 +225,7 @@ function page(client,url='https://sixmonth12.github.io/personal-introduce/') {
   new Script(readFileSync('script.js','utf8')).runInContext(dom.getInternalVMContext());
   new Script(readFileSync('images.js','utf8')).runInContext(dom.getInternalVMContext());
   new Script(readFileSync('blog.js','utf8')).runInContext(dom.getInternalVMContext());
+  new Script(readFileSync('journal-data.js','utf8')).runInContext(dom.getInternalVMContext());
   if(client){w.LIME_CONFIG={supabaseUrl:'https://test.supabase.co',supabaseKey:'sb_publishable_test',siteUrl:w.location.href};w.supabase={createClient:()=>client};}
   new Script(readFileSync('system.js','utf8')).runInContext(dom.getInternalVMContext());
   new Script(readFileSync('chapters.js','utf8')).runInContext(dom.getInternalVMContext());
@@ -159,12 +238,12 @@ function fakeClient(isOwner) {
   const calls=[];
   return {calls,
     auth:{onAuthStateChange(fn){cb=fn;setTimeout(()=>fn('INITIAL_SESSION',{user:{id:'me'},access_token:'one'}),0);},async signOut(){cb('SIGNED_OUT',null);return {data:{},error:null};}},
-    rpc(name){if(name.endsWith('_images'))return Promise.resolve({error:{code:'PGRST202'}});return Promise.resolve({data:name==='is_site_owner'?isOwner:['message_consent_ready','images_ready','blog_ready'].includes(name)?true:[],error:null});},
-    from(table){let operation='select',payload;const filters=[],orders=[];let range;const chain={
-      select(){return chain;},eq(...args){filters.push(args);return chain;},is(...args){filters.push(args);return chain;},order(...args){orders.push(args);return chain;},range(...args){range=args;return chain;},
+    rpc(name){if(name.endsWith('_images')||name==='journal_summaries')return Promise.resolve({error:{code:'PGRST202'}});return Promise.resolve({data:name==='is_site_owner'?isOwner:['message_consent_ready','images_ready','blog_ready'].includes(name)?true:[],error:null});},
+    from(table){let operation='select',payload,columns,single=false;const filters=[],orders=[];let range;const chain={
+      select(value){columns=value;return chain;},eq(...args){filters.push(args);return chain;},is(...args){filters.push(args);return chain;},order(...args){orders.push(args);return chain;},range(...args){range=args;return chain;},
       update(value){operation='update';payload=value;return chain;},insert(value){operation='insert';payload=value;return chain;},upsert(value){operation='upsert';payload=value;return chain;},
-      single(){return chain;},
-      then(resolve,reject){calls.push({table,operation,payload,filters,orders,range});return Promise.resolve({data:operation==='select'?(table==='journal_posts'?[post]:[]):{id:'saved'},error:null}).then(resolve,reject);}
+      single(){single=true;return chain;},
+      then(resolve,reject){calls.push({table,operation,payload,filters,orders,range,columns});return Promise.resolve({data:operation==='select'?(table==='journal_posts'?(single?post:[post]):[]):{id:'saved'},error:null}).then(resolve,reject);}
     };return chain;}
   };
 }
@@ -226,8 +305,10 @@ test('owner may edit a published entry without silently turning it into a draft;
   assert.equal(d.querySelector('#write-note').hidden,false);
   assert.equal(d.querySelector('#postcards img'),null);
   d.querySelector('#postcards .post-open').click();
+  await tick();
   assert.match(d.querySelector('.system-dialog').textContent,/<script>evil/);assert.equal(d.querySelector('.system-dialog script'),null);
   [...d.querySelectorAll('.system-dialog button')].find(b=>b.textContent==='编辑这篇').click();
+  await tick();
   assert.equal(d.querySelector('.system-dialog input[type=checkbox]').checked,true);
   const form=d.querySelector('.system-dialog form');form.dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));await tick();
   assert.equal(client.calls.some(c=>c.operation==='update'),false);
@@ -246,7 +327,8 @@ test('recent updates open article and discussion submits linked private letter',
     const query=client.calls.find(c=>c.range?.[1]===2);
     assert.deepEqual(query.filters,[['published',true],['deleted_at',null]]);
     assert.equal(query.orders[0][0],'updated_at');
-    const recent=d.querySelector('.recent-entry');assert.ok(recent);assert.equal(recent.querySelector('img'),null);recent.click();
+    assert.equal(query.columns.includes('image_data'),false);assert.notEqual(query.columns,'*');
+    const recent=d.querySelector('.recent-entry');assert.ok(recent);assert.equal(recent.querySelector('img'),null);recent.click();await tick();
     const article=d.querySelector('.system-dialog');
     [...article.querySelectorAll('button')].find(b=>b.textContent==='写下读后感 / 提问').click();
     const form=[...d.querySelectorAll('.system-dialog form')].at(-1);
@@ -273,6 +355,7 @@ test('search runs against all public content and share card copies title, excerp
   const client=fakeClient(false),rpc=client.rpc,requests=[];
   const post={id:'shared-post',title:'Old <img src=x>',body:'A complete searchable memory',category:'life',published:true,created_at:'2026-01-01',updated_at:'2026-01-01'};
   client.rpc=(name,args)=>{if(name==='search_journals'){requests.push(args);return Promise.resolve({data:args.search_query==='missing'?[]:[post]});}return rpc(name,args);};
+  const originalFrom=client.from;client.from=table=>{const chain=originalFrom(table);if(table==='journal_posts')chain.single=()=>Promise.resolve({data:post});return chain;};
   const dom=page(client),w=dom.window,d=w.document;await tick();await tick();
   try{
     const form=d.querySelector('.journal-search');form.querySelector('input').value='memory';form.dispatchEvent(new w.Event('submit',{cancelable:true}));await tick();

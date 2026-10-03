@@ -1,4 +1,15 @@
 /* Reading improvements scoped to journals; keep the existing sky and paper. */
+.journal-skeleton { padding:12px 12px 28px; border:1px solid #dde2d3; border-radius:4px 4px 17px 4px; background:#fffdf4; }
+.skeleton-art { aspect-ratio:3/2; border-radius:4px; background:linear-gradient(120deg,#e1e8db,#edf0e3); }
+.skeleton-line { height:18px; margin:24px 10px 0; border-radius:4px; background:#e3e8dc; }
+.skeleton-line.short { width:55%; height:12px; margin-top:16px; }
+#postcards > .system-empty { grid-column:1/-1; }
+#postcards .cover-retry { margin:0 12px 12px; font-size:12px; }
+#postcards[data-view="list"] .cover-retry { display:none; }
+#postcards[data-view="list"] .journal-skeleton { margin:12px 0; }
+#postcards[data-view="list"] .skeleton-art { display:none; }
+body.dusk .journal-skeleton { background:#29434a; border-color:#526b6c; }
+body.dusk :is(.skeleton-art,.skeleton-line) { background:#3d585c; }
 .journal-view-switch { display:flex; gap:3px; padding:4px; border:1px solid #d1dbcc; border-radius:24px; background:#fefbf2; margin-left:auto; }
 .journal-view-switch .system-button { border:0; border-radius:20px; padding:8px 17px; background:none; color:#56756c; font-size:12px; }
 .journal-view-switch [aria-pressed="true"] { background:#426f68; color:#fffdf2; }

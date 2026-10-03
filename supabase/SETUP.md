@@ -31,6 +31,10 @@
 
 ## 4. 管理内容
 
+### 心事摘要加载升级
+
+在 SQL Editor 新建查询，执行 `migration-journal-loading.sql` 全文。它只新增公开摘要函数，可重复执行，不修改文章和权限策略。执行 `select * from public.journal_summaries();` 应看到 `excerpt` 和 `has_image`，没有正文、图片内容字段。草稿和回收站不会返回。新项目的 `schema.sql` 已包含这一升级。
+
 ### 博客升级
 
 已有项目打开 [SQL Editor](https://supabase.com/dashboard/project/vlwohcaffwlyupplzdki/sql/new)，新建查询，复制 `migration-blog.sql` 全文，点击 **Run**。成功后刷新网站，导航中点击「博客」；使用现有站主账号登录即可写文章和管理草稿。也可执行 `select public.blog_ready();` 确认返回 `true`。

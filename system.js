@@ -5,6 +5,7 @@
   const config = window.LIME_CONFIG || {};
   const validConfig = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl || '') && !!config.supabaseKey && !config.supabaseKey.startsWith('sb_secret_');
   const db = validConfig && window.supabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseKey) : null;
+  const journalData = db ? window.createJournalData(db) : null;
   const images=window.LimeImages;
   async function imagesReady() {
     const result=await db.rpc('images_ready');
@@ -227,6 +228,7 @@ async function loadText() {
     journalCards.dataset.view=selected;
     viewButtons.forEach((b,key)=>b.setAttribute('aria-pressed',String(key===selected)));
     if(persist){try{localStorage.setItem('lime-journal-view-v1',selected);}catch{/* Browsing still works without local storage. */}}
+    if(persist)observeCovers();
   }
   [['cards','卡片'],['list','列表']].forEach(([key,label])=>{
     const b=button(label,()=>setJournalView(key,true));b.setAttribute('aria-controls','postcards');
@@ -235,25 +237,55 @@ async function loadText() {
   q('.journal-toolbar').insertBefore(viewControls,search);
   let savedView='cards';try{savedView=localStorage.getItem('lime-journal-view-v1');}catch{/* Default to cards. */}
   setJournalView(savedView);
+  let recentRequest=0;
   async function loadRecent(){
     if(!db){recentStatus.textContent='新的心事，会慢慢写在这里。';return;}
     recentRetry.disabled=true;
+    const ticket=++recentRequest;
+    recentStatus.textContent='正在加载最近心事…';
     try{
-      const posts=check(await db.from('journal_posts').select('*').eq('published',true).is('deleted_at',null).order('updated_at',{ascending:false}).order('id',{ascending:false}).range(0,2));
+      const posts=await journalData.summaries({recent:true});
+      if(ticket!==recentRequest)return;
       recentList.replaceChildren();
       posts.forEach(post=>{
-        const b=button('',()=>openJournal(post),'recent-entry');
-        b.append(node('span','message-meta',`${categories[post.category]} · 更新于 ${date(post.updated_at)}`),node('strong','',post.title),node('span','recent-excerpt',post.body.slice(0,65)+(post.body.length>65?'…':'')));
+        const b=button('',()=>openPublicJournal(post.id,post.title),'recent-entry');
+        b.append(node('span','message-meta',`${categories[post.category]} · 更新于 ${date(post.updated_at)}`),node('strong','',post.title),node('span','recent-excerpt',post.excerpt.slice(0,65)+(post.excerpt.length>65?'…':'')));
         recentList.append(b);
       });recentStatus.textContent=posts.length?'':'还没有公开的心事，期待下一封来信。';recentRetry.hidden=true;
-    }catch(e){recentStatus.textContent=errorText(e);recentRetry.hidden=false;}finally{recentRetry.disabled=false;}
+    }catch(e){if(ticket===recentRequest){recentStatus.textContent='最近心事暂时无法加载，请重试。';recentRetry.hidden=false;}}finally{if(ticket===recentRequest)recentRetry.disabled=false;}
   }
-  function openJournal(post){
+  async function openPublicJournal(id,title='正在打开这篇心事',routeVersion){
+    const d=modal(title),out=status(d);out.textContent='正在读取全文…';
+    const version=sessionVersion;
+    const load=async()=>{
+      await busy(d,out,async()=>{
+        const post=await journalData.detail(id);
+        if(!d.isConnected||version!==sessionVersion||(routeVersion!==undefined&&routeVersion!==routeRequest)) {if(d.isConnected)d.close();return;}
+        if(!post)throw Error('心事已收起或不存在。');
+        d.close();openJournal(post,true);
+      });
+      if(d.isConnected){out.textContent='这封心事暂不可读，可能已收起或连接失败。可以重试。';retry.hidden=false;}
+    };
+    const retry=button('重试读取全文',load);retry.hidden=true;d.append(retry);load();
+  }
+  function openJournal(post,lazyImage=false){
     const d=modal(post.title);d.append(node('p','message-meta',`${categories[post.category]} · 写于 ${date(post.created_at)}`));
     d.classList.add('journal-reader');
     d.dataset.readingJournal=post.id;
     const body=node('div','system-journal-body');body.append(node('p','',post.body));appendImage(body,post.image_data,'心事配图');d.append(body);
-    if(owner)d.append(button('编辑这篇',()=>{d.close();editJournal(post);}));
+    if(lazyImage){
+      const imageStatus=status(body),imageRetry=button('重试配图',()=>loadImage());body.append(imageRetry);imageRetry.hidden=true;
+      async function loadImage(){
+        imageStatus.textContent='正在加载配图…';imageRetry.hidden=true;
+        try{const value=await journalData.cover(post.id);if(!d.isConnected)return;appendImage(body,value,'心事配图');imageStatus.remove();imageRetry.remove();}
+        catch{if(d.isConnected){imageStatus.textContent='配图暂未加载，正文可以继续阅读。';imageRetry.hidden=false;}}
+      }loadImage();
+    }
+    if(owner)d.append(button('编辑这篇',async()=>{
+      if(!lazyImage){d.close();editJournal(post);return;}
+      const out=status(d),account=user?.id;
+      await busy(d,out,async()=>{const full=await journalData.editable(post.id);if(!d.isConnected||!owner||user?.id!==account)return;d.close();editJournal(full);});
+    }));
     const discussion=node('section','journal-discussion');const discussionTitle=node('h3','','聊聊这一篇');discussion.append(discussionTitle,node('p','system-note','默认只有你和站主可见。允许公开且经站主发布的交流，会出现在这里。'));
     const share=button('分享这篇心事 ↗',()=>shareJournal(post));discussion.append(button('写下读后感 / 提问',()=>sendMessage(post),'primary'),share);
     const list=node('div','manage-list'),out=status(discussion);discussion.append(list);
@@ -291,28 +323,57 @@ async function loadText() {
     const id=new URLSearchParams(location.search).get('journal'),version=++routeRequest;
     if(!db||!id||location.hash!=='#journal')return;
     if([...document.querySelectorAll('[data-reading-journal]')].some(d=>d.dataset.readingJournal===id))return;
-    try {
-      const post=check(await db.from('journal_posts').select('*').eq('id',id).eq('published',true).is('deleted_at',null).single());
-      if(version!==routeRequest)return;
-      if(!post)throw Error('文章不可用');
-      openJournal(post);
-    } catch {if(version===routeRequest){const d=modal('这封心事暂不可读');d.append(node('p','system-note','它可能已被收起、删除，或网络暂时不可用。你仍可以浏览其他公开心事。'));d.append(button('重新加载',()=>{d.close();openSharedJournal();}));}}
+    openPublicJournal(id,'正在打开这篇心事',version);
   }
   const journalMore=button('再读一些心事',()=>fetchJournal(journalMore.dataset.retry==='true'));q('#postcards').after(journalMore);journalMore.hidden=true;
   const journalStatus=node('p','system-status');journalMore.after(journalStatus);journalStatus.setAttribute('role','status');
   async function queryJournals(offset) {
-    if(journalQuery) {
-      return publicImageRows('search_journals',{search_query:journalQuery,category_filter:journalCategory,page_offset:offset});
+    return journalData.summaries({query:journalQuery,category:journalCategory,offset});
+  }
+  let coverObserver,coverQueue=[],coverActive=0;
+  function coversVisible(){const active=document.documentElement.dataset.chapter;return (!active||active==='journal')&&journalCards.dataset.view!=='list';}
+  function observeCovers(){
+    coverObserver?.disconnect();coverQueue.forEach(a=>delete a.dataset.coverState);coverQueue=[];
+    if(!coversVisible())return;
+    const arts=[...journalCards.querySelectorAll('[data-cover-id]')].filter(a=>!a.dataset.coverState);
+    if(!('IntersectionObserver' in window)){arts.forEach(queueCover);return;}
+    coverObserver=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){coverObserver.unobserve(e.target);queueCover(e.target);}}),{root:journalCards.closest('.chapter-page'),rootMargin:'100px'});
+    arts.forEach(a=>coverObserver.observe(a));
+  }
+  function queueCover(art){if(!coversVisible()||!art.isConnected||art.dataset.coverState)return;art.dataset.coverState='queued';coverQueue.push(art);drainCovers();}
+  function drainCovers(){
+    if(!coversVisible())return;
+    while(coverActive<2&&coverQueue.length){
+      const art=coverQueue.shift();if(!art.isConnected)continue;
+      art.closest('.postcard').querySelector('.cover-retry')?.remove();
+      const caption=art.querySelector('small');if(caption)caption.textContent='正在加载配图…';
+      coverActive++;art.dataset.coverState='loading';
+      journalData.cover(art.dataset.coverId).then(value=>{
+        if(!art.isConnected)return;
+        const img=images.render(value,'心事封面','journal-cover');
+        if(img){art.replaceChildren(img);art.classList.add('has-image');}else if(caption)caption.textContent='A LITTLE LETTER';art.dataset.coverState='done';
+      }).catch(()=>{if(art.isConnected){
+        art.dataset.coverState='failed';if(caption)caption.textContent='配图暂未加载 · 正文可阅读';
+        const retry=button('重试配图',()=>{delete art.dataset.coverState;queueCover(art);},'system-button cover-retry');
+        retry.setAttribute('aria-label',`重新加载《${art.closest('.postcard').querySelector('h3').textContent}》的配图`);
+        art.closest('.postcard').append(retry);
+      }})
+        .finally(()=>{coverActive--;drainCovers();});
     }
-    let req=db.from('journal_posts').select('*').eq('published',true).is('deleted_at',null);
-    if(journalCategory!=='all')req=req.eq('category',journalCategory);
-    return check(await req.order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+11));
+  }
+  document.addEventListener('chapterchange',observeCovers);
+  function journalPlaceholder(failed=false){
+    journalCards.replaceChildren();
+    if(failed){journalCards.append(node('p','system-empty','心事暂未加载。请重试，或稍后再来。'));return;}
+    for(let i=0;i<3;i++){const card=node('div','journal-skeleton');card.setAttribute('aria-hidden','true');card.append(node('div','skeleton-art'),node('div','skeleton-line'),node('div','skeleton-line short'));journalCards.append(card);}
   }
   async function fetchJournal(reset=true) {
     if(!db)return;
     const request=++journalRequest;
     if(reset)journalOffset=0;
     if(reset&&!journalQuery&&journalCategory==='all')loadRecent();
+    if(reset){coverObserver?.disconnect();coverQueue=[];journalPlaceholder();q('[data-filter="all"] sup').textContent='…';}
+    journalCards.setAttribute('aria-busy','true');
      journalMore.disabled=true;
      journalStatus.textContent='正在加载心事，请稍候…';
     try{
@@ -340,14 +401,15 @@ async function loadText() {
         const article=node('article','postcard');article.dataset.category=post.category;article.dataset.journalId=post.id;
         const open=node('button','post-open');open.type='button';
         const art=node('span',`card-art system-journal-art ${post.category}`);art.append(node('span','','✳'),node('small','','A LITTLE LETTER'));
-        if(images.valid(post.image_data)){art.replaceChildren(images.render(post.image_data,'心事封面','journal-cover'));art.classList.add('has-image');}
+        if(post.has_image!==false)art.dataset.coverId=post.id;
         const meta=node('span','card-meta',categories[post.category]);
         const time=node('time','post-date',`写于 ${date(post.created_at)}`);time.dateTime=post.created_at;
-        const bottom=node('span','card-bottom','读这封信 ↗');const count=node('span','discussion-count');bottom.append(count);open.append(art,meta,node('h3','',post.title),time,node('p','',post.body.slice(0,90)+(post.body.length>90?'…':'')),bottom);
-        open.addEventListener('click',()=>openJournal(post));
+        const bottom=node('span','card-bottom','读这封信 ↗');const count=node('span','discussion-count');bottom.append(count);open.append(art,meta,node('h3','',post.title),time,node('p','',post.excerpt.slice(0,90)+(post.excerpt.length>90?'…':'')),bottom);
+        open.addEventListener('click',()=>openPublicJournal(post.id,post.title));
         article.append(open);q('#postcards').append(article);
       });
       if(rows.length) loadDiscussionCounts(rows);
+      observeCovers();
       journalOffset=offset+rows.length;journalMore.hidden=rows.length<12;
       journalStatus.textContent=journalOffset?`已显示 ${journalOffset} 篇${journalMore.hidden?'':'，可继续加载'}`:journalQuery?'没有找到匹配的心事，试试其他词吧。':'这个分类还没有公开的心事。';
       journalMore.textContent='再读一些心事';q('#filter-status').textContent=journalStatus.textContent;
@@ -356,12 +418,13 @@ async function loadText() {
       q('[data-filter="all"] sup').textContent=String(journalOffset).padStart(2,'0');
     }catch(e){
       if(request!==journalRequest)return;
+      if(reset){journalPlaceholder(true);q('[data-filter="all"] sup').textContent='—';}
       journalStatus.textContent = /fetch|network|load failed|timeout/i.test(e?.message || '')
         ? '心事暂时无法加载，请点击“重试加载心事”。'
         : errorText(e);
       journalMore.hidden=false;journalMore.dataset.retry=String(reset);journalMore.textContent='重试加载心事';
     }
-    finally{if(request===journalRequest)journalMore.disabled=false;}
+    finally{if(request===journalRequest){journalMore.disabled=false;journalCards.setAttribute('aria-busy','false');}}
   }
   async function loadDiscussionCounts(posts) {
     try { const counts=check(await db.rpc('journal_discussion_counts',{journal_ids:posts.map(p=>p.id)})); const byId=new Map((counts||[]).map(c=>[c.journal_id,c]));document.querySelectorAll('[data-journal-id]').forEach(card=>{if(!posts.some(p=>p.id===card.dataset.journalId))return;const c=byId.get(card.dataset.journalId);card.querySelector('.discussion-count').textContent=`${Number(c?.total||0)} 条公开交流${Number(c?.replied)?` · ${c.replied} 已回复`:''}`;}); } catch { /* migration not installed yet */ }
