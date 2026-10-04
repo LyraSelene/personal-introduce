@@ -5,7 +5,8 @@
   const config = window.LIME_CONFIG || {};
   const validConfig = /^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(config.supabaseUrl || '') && !!config.supabaseKey && !config.supabaseKey.startsWith('sb_secret_');
   const db = validConfig && window.supabase ? window.supabase.createClient(config.supabaseUrl, config.supabaseKey) : null;
-  const journalData = db ? window.createJournalData(db) : null;
+  const useStatic=()=>!!window.LimePublicReading&&!owner;
+  const journalData = db||window.LimePublicReading ? window.createJournalData(db,useStatic) : null;
   const images=window.LimeImages;
   async function imagesReady() {
     const result=await db.rpc('images_ready');
@@ -176,6 +177,10 @@
   }
 async function loadText() {
   let rows;
+  if(useStatic()){
+    window.LimePublicReading.text.forEach(row=>fields.get(row.key)?.apply(row.value));
+    q('[data-feeling].selected')?.click();return;
+  }
 
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
@@ -239,7 +244,7 @@ async function loadText() {
   setJournalView(savedView);
   let recentRequest=0;
   async function loadRecent(){
-    if(!db){recentStatus.textContent='新的心事，会慢慢写在这里。';return;}
+    if(!journalData){recentStatus.textContent='新的心事，会慢慢写在这里。';return;}
     recentRetry.disabled=true;
     const ticket=++recentRequest;
     recentStatus.textContent='正在加载最近心事…';
@@ -321,12 +326,15 @@ async function loadText() {
   }
   async function openSharedJournal() {
     const id=new URLSearchParams(location.search).get('journal'),version=++routeRequest;
-    if(!db||!id||location.hash!=='#journal')return;
+    if(!journalData||!id||location.hash!=='#journal')return;
     if([...document.querySelectorAll('[data-reading-journal]')].some(d=>d.dataset.readingJournal===id))return;
     openPublicJournal(id,'正在打开这篇心事',version);
   }
   const journalMore=button('再读一些心事',()=>fetchJournal(journalMore.dataset.retry==='true'));q('#postcards').after(journalMore);journalMore.hidden=true;
   const journalStatus=node('p','system-status');journalMore.after(journalStatus);journalStatus.setAttribute('role','status');
+  if(window.LimePublicReading){
+    journalStatus.after(node('p','system-note',`公开阅读副本 · 更新于 ${date(window.LimePublicReading.exportedAt)}。登录与交流需要连接在线服务。`));
+  }
   async function queryJournals(offset) {
     return journalData.summaries({query:journalQuery,category:journalCategory,offset});
   }
@@ -368,7 +376,7 @@ async function loadText() {
     for(let i=0;i<3;i++){const card=node('div','journal-skeleton');card.setAttribute('aria-hidden','true');card.append(node('div','skeleton-art'),node('div','skeleton-line'),node('div','skeleton-line short'));journalCards.append(card);}
   }
   async function fetchJournal(reset=true) {
-    if(!db)return;
+    if(!journalData)return;
     const request=++journalRequest;
     if(reset)journalOffset=0;
     if(reset&&!journalQuery&&journalCategory==='all')loadRecent();
@@ -659,7 +667,7 @@ async function loadText() {
     // Remove private content immediately when accounts change or sessions end.
     document.querySelectorAll('.system-dialog').forEach(d=>d.close());renderAccount();
     if(user)try{const result=check(await db.rpc('is_site_owner'));if(version!==sessionVersion)return;owner=result===true;}catch(e){showToast(errorText(e));}
-    if(version===sessionVersion){renderAccount();openSharedJournal();}
+    if(version===sessionVersion){renderAccount();openSharedJournal();if(window.LimePublicReading){loadText().catch(()=>{});fetchJournal();}}
     if(version===sessionVersion&&user&&pendingDiscussion){const post=pendingDiscussion;pendingDiscussion=null;sendMessage(post);}
   }
   blog=window.createLimeBlog?.({db,config,images,node,button,modal,field,select,checkbox,status,check,busy,errorText,date,identity:()=>({user,owner})});
@@ -682,6 +690,7 @@ async function loadText() {
   showToast('最新网站文字暂时无法加载，当前显示页面自带文案。请稍后刷新。');});fetchJournal();loadPublicMessages();
   }else{
     loadRecent();
+    if(window.LimePublicReading){loadText();fetchJournal();openSharedJournal();}
     boardStatus.textContent='来信功能正在准备中，网站内容可正常浏览。';
     q('[data-filter="all"] sup').textContent='03';
   }

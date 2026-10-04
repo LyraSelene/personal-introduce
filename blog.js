@@ -4,8 +4,10 @@ window.createLimeBlog=function(api){
   const q=s=>document.querySelector(s),categories={tech:'技术',ai:'AI',notes:'随笔'};
   const list=q('#blog-list'),out=q('#blog-status'),more=q('#blog-more'),write=q('#blog-write');
   if(!list)return null;
+  if(window.LimePublicReading)out.after(node('p','system-note',`公开阅读副本 · 更新于 ${date(window.LimePublicReading.exportedAt)}`));
   let offset=0,query='',category='all',request=0,route=0;
   const tags=value=>String(value||'').split(/[,，]/).map(s=>s.trim()).filter(Boolean).slice(0,10);
+  const useStatic=()=>!!window.LimePublicReading&&!identity().owner;
   function failure(e){return ['PGRST202','PGRST205','42P01'].includes(e?.code)?'博客正在准备中。站主需先执行 migration-blog.sql，再刷新页面。':errorText(e);}
   function requireOwner(){if(!identity().owner)throw Error('请使用站主账号登录。');}
   async function ready(){if(!db)throw Error('博客尚未连接数据库。');const r=await db.rpc('blog_ready');if(r.error)throw r.error;if(r.data!==true)throw Error('请先执行博客数据库迁移。');}
@@ -16,10 +18,10 @@ window.createLimeBlog=function(api){
     const body=node('div','blog-reader-body');body.append(node('p','',post.body));d.append(body,chips(post.tags));
   }
   async function load(reset=true){
-    const ticket=++request;if(!db){out.textContent='博客尚未连接数据库，其他页面仍可浏览。';return;}
+    const ticket=++request;if(!db&&!useStatic()){out.textContent='博客尚未连接数据库，其他页面仍可浏览。';return;}
     const start=reset?0:offset;more.disabled=true;out.textContent='正在翻开博客…';
     try{
-      const rows=check(await db.rpc('public_blog_posts',{search_query:query,category_filter:category,page_offset:start}));
+      const rows=useStatic()?window.LimePublicReading.list('blogs',{query,category,offset:start}):check(await db.rpc('public_blog_posts',{search_query:query,category_filter:category,page_offset:start}));
       if(ticket!==request)return;
       if(reset)list.replaceChildren();
       rows.forEach(post=>{
@@ -45,10 +47,10 @@ window.createLimeBlog=function(api){
   }
   async function openShared(){
     const id=new URLSearchParams(location.search).get('blog'),ticket=++route;
-    if(!id||location.hash!=='#blog'||!db)return;
+    if(!id||location.hash!=='#blog'||(!db&&!useStatic()))return;
     if([...document.querySelectorAll('[data-reading-blog]')].some(d=>d.dataset.readingBlog===id))return;
     try{
-      const post=check(await db.from('blog_posts').select('*').eq('id',id).eq('published',true).is('deleted_at',null).single());
+      const post=useStatic()?window.LimePublicReading.detail('blogs',id):check(await db.from('blog_posts').select('*').eq('id',id).eq('published',true).is('deleted_at',null).single());
       if(ticket!==route)return;if(!post)throw Error('文章已收起或不存在。');read(post);
     }catch(e){if(ticket!==route)return;const d=modal('这篇博客暂不可读');d.append(node('p','system-note',failure(e)));d.append(button('重试',()=>{d.close();openShared();}));}
   }
@@ -136,5 +138,5 @@ window.createLimeBlog=function(api){
   if(shared&&(!location.hash||location.hash==='#home'))history.replaceState(null,'',`${location.pathname}${location.search}#blog`);
   window.addEventListener('hashchange',openShared);window.addEventListener('popstate',openShared);
   load();openShared();
-  return {manage,sessionChanged(){write.hidden=manageButton.hidden=!identity().owner;route++;document.querySelectorAll('[data-reading-blog]').forEach(d=>d.close());openShared();}};
+  return {manage,sessionChanged(){write.hidden=manageButton.hidden=!identity().owner;route++;document.querySelectorAll('[data-reading-blog]').forEach(d=>d.close());if(window.LimePublicReading)load();openShared();}};
 };

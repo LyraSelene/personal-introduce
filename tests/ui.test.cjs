@@ -5,6 +5,26 @@ const { JSDOM } = require('jsdom');
 const { Script } = require('node:vm');
 const tick = () => new Promise(resolve => setTimeout(resolve,25));
 
+test('public snapshot reads journals and blogs even when all backend requests fail',async()=>{
+  const base={id:'offline',title:'Offline journal',body:'Full offline text',category:'life',published:true,deleted_at:null,created_at:'2026-01-01',updated_at:'2026-01-01',image_data:'data:image/png;base64,AAAA'};
+  const snapshot={exportedAt:'2026-10-04',text:[],journals:[base,{...base,id:'private',title:'PRIVATE SECRET',published:false}],blogs:[{...base,id:'offline-blog',title:'Offline blog',category:'tech',tags:'SQL',excerpt:'Summary'}]};
+  const client=fakeClient(false);client.rpc=()=>Promise.resolve({error:{message:'network failed'}});
+  const from=client.from;client.from=table=>{const chain=from(table);chain.then=(resolve,reject)=>Promise.resolve({error:{message:'network failed'}}).then(resolve,reject);chain.single=()=>Promise.resolve({error:{message:'network failed'}});return chain;};
+  const dom=page(client,'https://sixmonth12.github.io/personal-introduce/?journal=offline#journal',snapshot),d=dom.window.document;
+  try{
+    await tick();await tick();
+    assert.match(d.querySelector('#postcards').textContent,/Offline journal/);assert.doesNotMatch(d.body.textContent,/PRIVATE SECRET/);
+    assert.match(d.querySelector('.system-journal-body').textContent,/Full offline text/);
+    assert.ok(d.querySelector('.system-journal-body img'));
+    assert.match(d.querySelector('#blog-list').textContent,/Offline blog/);
+    d.querySelector('.journal-reader').close();d.querySelector('.blog-card-button').click();
+    assert.match(d.querySelector('.blog-reader-body').textContent,/Full offline text/);
+    assert.equal(d.querySelector('#blog-write').hidden,true);
+  }finally{await tick();dom.window.close();}
+  const shared=page(client,'https://sixmonth12.github.io/personal-introduce/?blog=offline-blog#blog',snapshot);
+  try{await tick();await tick();assert.match(shared.window.document.querySelector('.blog-reader-body').textContent,/Full offline text/);}finally{shared.window.close();}
+});
+
 test('journal summaries render before covers and recent entries fetch complete text only on click',async()=>{
   const client=fakeClient(false),rpc=client.rpc,from=client.from,requests=[],covers=[];
   const summary={id:'summary-1',title:'Short title',excerpt:'Short excerpt',has_image:true,category:'life',published:true,created_at:'2026-01-01',updated_at:'2026-01-01'};
@@ -215,9 +235,10 @@ test('journal view switching preserves article nodes and opens the same full rea
     assert.equal(cards.dataset.view,'cards');assert.equal(cards.querySelector('.postcard'),article);
   } finally { await tick();w.close(); }
 });
-function page(client,url='https://sixmonth12.github.io/personal-introduce/') {
+function page(client,url='https://sixmonth12.github.io/personal-introduce/',snapshot) {
   const dom = new JSDOM(readFileSync('index.html','utf8'), {url,runScripts:'outside-only',pretendToBeVisual:true});
   const w=dom.window;
+  if(snapshot){w.LIME_PUBLIC_SNAPSHOT=snapshot;new Script(readFileSync('public-reading.js','utf8')).runInContext(dom.getInternalVMContext());}
   w.matchMedia=()=>({matches:false,addEventListener(){}});
   w.HTMLDialogElement.prototype.showModal=function(){this.open=true;};
   w.HTMLDialogElement.prototype.close=function(){this.open=false;this.dispatchEvent(new w.Event('close'));};
