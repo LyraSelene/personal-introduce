@@ -6,7 +6,7 @@
 
 > 有一些认真，有一些胡思乱想。还有好多，说不清却想记住的瞬间。
 
-**[访问网站](https://sixmonth12.github.io/personal-introduce/)** · **[GitHub 仓库](https://github.com/Sixmonth12/personal-introduce)** · **[后台接入说明](supabase/SETUP.md)**
+**[访问网站](https://LyraSelene.github.io/personal-introduce/)** · **[GitHub 仓库](https://github.com/LyraSelene/personal-introduce)** · **[后台接入说明](supabase/SETUP.md)**
 
 ## 当前版本
 
@@ -82,7 +82,7 @@
 
 ## 在线访问与本地浏览
 
-**直接分享网站：** <https://sixmonth12.github.io/personal-introduce/>
+**直接分享网站：** <https://LyraSelene.github.io/personal-introduce/>
 
 这是已经发布的 GitHub Pages 地址，别人打开链接即可访问，不需要下载仓库。
 
@@ -92,7 +92,7 @@
 2. 静态内容可直接用浏览器打开 `index.html`。账号和邮件回跳请使用上面的 HTTPS 网站地址，并按接入说明配置 Supabase。
 
 ```bash
-git clone https://github.com/Sixmonth12/personal-introduce.git lime-personal-site
+git clone https://github.com/LyraSelene/personal-introduce.git lime-personal-site
 cd lime-personal-site
 ```
 
@@ -219,7 +219,7 @@ git push
 
 本仓库已经开启 GitHub Pages，从 `main` 分支根目录发布。上传源码是备份，GitHub Pages 才是对外分享入口：
 
-<https://sixmonth12.github.io/personal-introduce/>
+<https://LyraSelene.github.io/personal-introduce/>
 
 如果未来关闭 Pages 或更换仓库，需要在仓库的 **Settings → Pages** 中重新选择 `main` 分支的根目录；通常修改 `main` 后 GitHub 会自动重新构建。
 
